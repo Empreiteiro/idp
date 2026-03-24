@@ -3,15 +3,18 @@
 import { useState } from "react";
 import { useDocuments, useDeleteDocument } from "@/hooks/use-documents";
 import { useTemplates } from "@/hooks/use-templates";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
@@ -26,6 +29,7 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
+  ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -54,7 +58,9 @@ export default function DocumentsPage() {
   const { data: templates } = useTemplates();
   const deleteMutation = useDeleteDocument();
 
-  const handleDelete = (id: number, filename: string) => {
+  const handleDelete = (e: React.MouseEvent, id: number, filename: string) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (confirm(`Delete "${filename}"?`)) {
       deleteMutation.mutate(id, {
         onSuccess: () => toast.success("Document deleted"),
@@ -84,7 +90,10 @@ export default function DocumentsPage() {
 
       {/* Filters */}
       <div className="flex gap-3">
-        <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val ?? "")}>
+        <Select
+          value={statusFilter}
+          onValueChange={(val) => setStatusFilter(val ?? "")}
+        >
           <SelectTrigger className="w-48">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
@@ -97,7 +106,10 @@ export default function DocumentsPage() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={templateFilter} onValueChange={(val) => setTemplateFilter(val ?? "")}>
+        <Select
+          value={templateFilter}
+          onValueChange={(val) => setTemplateFilter(val ?? "")}
+        >
           <SelectTrigger className="w-48">
             <SelectValue placeholder="All templates" />
           </SelectTrigger>
@@ -123,11 +135,11 @@ export default function DocumentsPage() {
         )}
       </div>
 
-      {/* Document List */}
+      {/* Document Table */}
       {isLoading ? (
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="h-16 w-full" />
+            <Skeleton key={i} className="h-14 w-full" />
           ))}
         </div>
       ) : !data?.documents.length ? (
@@ -142,86 +154,119 @@ export default function DocumentsPage() {
         </Card>
       ) : (
         <>
-          <div className="space-y-2">
-            {data.documents.map((doc) => (
-              <div
-                key={doc.id}
-                className="group flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted"
-              >
-                <Link
-                  href={`/documents/${doc.id}`}
-                  className="flex flex-1 items-center gap-4"
-                >
-                  <FileText className="h-5 w-5 text-muted-foreground" />
-                  <div className="flex-1">
-                    <p className="font-medium">{doc.filename}</p>
-                    <div className="flex gap-2 text-xs text-muted-foreground">
-                      <span>
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead>Filename</TableHead>
+                  <TableHead>Template</TableHead>
+                  <TableHead>Size</TableHead>
+                  <TableHead>Pages</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead className="w-[70px]" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.documents.map((doc) => {
+                  const isProcessing =
+                    doc.status === "extracting" ||
+                    doc.status === "ocr_processing" ||
+                    doc.status === "classifying";
+
+                  return (
+                    <TableRow key={doc.id} className="group">
+                      <TableCell>
+                        <Link
+                          href={`/documents/${doc.id}`}
+                          className="flex items-center gap-2 font-medium text-primary hover:underline"
+                        >
+                          <FileText className="h-4 w-4 flex-shrink-0" />
+                          <span className="max-w-[280px] truncate">
+                            {doc.filename}
+                          </span>
+                          <ExternalLink className="h-3 w-3 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {doc.template_name || "—"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
                         {doc.file_size
                           ? `${(doc.file_size / 1024).toFixed(0)} KB`
-                          : ""}
-                      </span>
-                      {doc.template_name && (
-                        <span>| {doc.template_name}</span>
-                      )}
-                      <span>
-                        | {new Date(doc.created_at).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                  <Badge
-                    variant={
-                      doc.status === "completed"
-                        ? "default"
-                        : doc.status === "failed"
-                          ? "destructive"
-                          : doc.status === "review"
-                            ? "secondary"
-                            : "outline"
-                    }
-                  >
-                    {doc.status === "extracting" ||
-                    doc.status === "ocr_processing" ||
-                    doc.status === "classifying" ? (
-                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                    ) : null}
-                    {statusLabels[doc.status] || doc.status}
-                  </Badge>
-                </Link>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="ml-2 opacity-0 group-hover:opacity-100"
-                  onClick={() => handleDelete(doc.id, doc.filename)}
-                >
-                  <Trash2 className="h-4 w-4 text-red-500" />
-                </Button>
-              </div>
-            ))}
+                          : "—"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {doc.page_count ?? "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            doc.status === "completed"
+                              ? "default"
+                              : doc.status === "failed"
+                                ? "destructive"
+                                : doc.status === "review"
+                                  ? "secondary"
+                                  : "outline"
+                          }
+                        >
+                          {isProcessing && (
+                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                          )}
+                          {statusLabels[doc.status] || doc.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {new Date(doc.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) =>
+                            handleDelete(e, doc.id, doc.filename)
+                          }
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           </div>
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm">
-                Page {page} of {totalPages}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">
+                Showing {(page - 1) * data.limit + 1}–
+                {Math.min(page * data.limit, data.total)} of {data.total}
               </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => p - 1)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm">
+                  {page} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
         </>

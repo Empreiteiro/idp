@@ -1,16 +1,23 @@
 "use client";
 
 import { useDataSummary } from "@/hooks/use-data-tables";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table2, FileText, CheckCircle, Clock } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Table2,
+  CheckCircle,
+  Clock,
+  ExternalLink,
+} from "lucide-react";
 import Link from "next/link";
 
 export default function DataPage() {
@@ -26,9 +33,9 @@ export default function DataPage() {
       </div>
 
       {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
-            <Skeleton key={i} className="h-40" />
+            <Skeleton key={i} className="h-14 w-full" />
           ))}
         </div>
       ) : !data?.templates.length ? (
@@ -48,46 +55,62 @@ export default function DataPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {data.templates.map((t) => (
-            <Link key={t.template_id} href={`/data/${t.template_id}`}>
-              <Card className="h-full transition-colors hover:bg-muted/50 cursor-pointer">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Table2 className="h-5 w-5 text-primary" />
-                    {t.template_name}
-                  </CardTitle>
-                  <CardDescription>
-                    {t.field_count} columns &middot; {t.extraction_count} rows
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary" className="gap-1">
-                      <FileText className="h-3 w-3" />
-                      {t.extraction_count} extractions
-                    </Badge>
+        <div className="rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead>Template</TableHead>
+                <TableHead className="text-center">Fields</TableHead>
+                <TableHead className="text-center">Extractions</TableHead>
+                <TableHead className="text-center">Reviewed</TableHead>
+                <TableHead className="text-center">Pending</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.templates.map((t) => (
+                <TableRow key={t.template_id} className="group">
+                  <TableCell>
+                    <Link
+                      href={`/data/${t.template_id}`}
+                      className="flex items-center gap-2 font-medium text-primary hover:underline"
+                    >
+                      <Table2 className="h-4 w-4 flex-shrink-0" />
+                      {t.template_name}
+                      <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant="secondary">{t.field_count}</Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant="outline">{t.extraction_count}</Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
                     <Badge
                       variant="outline"
                       className="gap-1 text-green-600 border-green-200"
                     >
                       <CheckCircle className="h-3 w-3" />
-                      {t.reviewed_count} reviewed
+                      {t.reviewed_count}
                     </Badge>
-                    {t.pending_count > 0 && (
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {t.pending_count > 0 ? (
                       <Badge
                         variant="outline"
                         className="gap-1 text-yellow-600 border-yellow-200"
                       >
                         <Clock className="h-3 w-3" />
-                        {t.pending_count} pending
+                        {t.pending_count}
                       </Badge>
+                    ) : (
+                      <span className="text-muted-foreground">0</span>
                     )}
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>

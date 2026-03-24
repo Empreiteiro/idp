@@ -1,17 +1,19 @@
 "use client";
 
 import { useTemplates, useDeleteTemplate } from "@/hooks/use-templates";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FolderOpen, Plus, FileText, Trash2 } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { FolderOpen, Plus, FileText, Trash2, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -19,7 +21,9 @@ export default function TemplatesPage() {
   const { data: templates, isLoading } = useTemplates();
   const deleteMutation = useDeleteTemplate();
 
-  const handleDelete = (id: number, name: string) => {
+  const handleDelete = (e: React.MouseEvent, id: number, name: string) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (confirm(`Delete template "${name}"? This cannot be undone.`)) {
       deleteMutation.mutate(id, {
         onSuccess: () => toast.success("Template deleted"),
@@ -46,9 +50,9 @@ export default function TemplatesPage() {
       </div>
 
       {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(3)].map((_, i) => (
-            <Skeleton key={i} className="h-40" />
+        <div className="space-y-3">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-14 w-full" />
           ))}
         </div>
       ) : !templates?.length ? (
@@ -68,49 +72,62 @@ export default function TemplatesPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {templates.map((t) => (
-            <Card key={t.id} className="group relative">
-              <Link href={`/templates/${t.id}`}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FolderOpen className="h-5 w-5 text-primary" />
-                    {t.name}
-                  </CardTitle>
-                  {t.description && (
-                    <CardDescription className="line-clamp-2">
-                      {t.description}
-                    </CardDescription>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-3">
-                    <Badge variant="secondary">
-                      {t.field_count} fields
+        <div className="rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead>Name</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead className="text-center">Fields</TableHead>
+                <TableHead className="text-center">Documents</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead className="w-[70px]" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {templates.map((t) => (
+                <TableRow key={t.id} className="group">
+                  <TableCell>
+                    <Link
+                      href={`/templates/${t.id}`}
+                      className="flex items-center gap-2 font-medium text-primary hover:underline"
+                    >
+                      <FolderOpen className="h-4 w-4 flex-shrink-0" />
+                      {t.name}
+                      <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </Link>
+                  </TableCell>
+                  <TableCell className="max-w-[300px]">
+                    <span className="text-muted-foreground line-clamp-1">
+                      {t.description || "—"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant="secondary">{t.field_count}</Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant="outline" className="gap-1">
+                      <FileText className="h-3 w-3" />
+                      {t.document_count}
                     </Badge>
-                    <Badge variant="outline">
-                      <FileText className="mr-1 h-3 w-3" />
-                      {t.document_count} docs
-                    </Badge>
-                  </div>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Created {new Date(t.created_at).toLocaleDateString()}
-                  </p>
-                </CardContent>
-              </Link>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleDelete(t.id, t.name);
-                }}
-              >
-                <Trash2 className="h-4 w-4 text-red-500" />
-              </Button>
-            </Card>
-          ))}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {new Date(t.created_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => handleDelete(e, t.id, t.name)}
+                    >
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>
