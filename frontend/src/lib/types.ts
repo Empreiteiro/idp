@@ -155,3 +155,49 @@ export interface ConnectionTestResult {
   message: string;
   response?: string;
 }
+
+// LLM Logs types
+export interface LLMLogEntry {
+  id: number;
+  request_type: string;
+  provider: string;
+  model: string;
+  document_id: number | null;
+  template_id: number | null;
+  entity_name: string | null;
+  status: string;
+  prompt_tokens: number | null;
+  completion_tokens: number | null;
+  total_tokens: number | null;
+  latency_ms: number | null;
+  estimated_cost: number | null;
+  created_at: string;
+}
+
+export interface LLMLogDetail extends LLMLogEntry {
+  system_prompt: string | null;
+  user_prompt: string | null;
+  response_text: string | null;
+  error_message: string | null;
+}
+
+export interface LLMLogListResponse {
+  logs: LLMLogEntry[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface LLMStats {
+  total_requests: number;
+  total_tokens: number;
+  total_cost: number;
+  avg_latency_ms: number;
+  error_count: number;
+  success_rate: number;
+  by_provider: Record<string, number>;
+  by_type: Record<string, number>;
+  by_model: Record<string, number>;
+  tokens_by_provider: Record<string, number>;
+  cost_by_provider: Record<string, number>;
+}
