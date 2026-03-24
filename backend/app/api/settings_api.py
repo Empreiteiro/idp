@@ -54,7 +54,9 @@ def get_system_info(db: Session = Depends(get_db)):
     """Get system information about available tools."""
     info = {
         "pdfplumber": False,
+        "pymupdf": False,
         "pytesseract": False,
+        "tesseract_bin": False,
         "pdf2image": False,
         "openai": False,
         "anthropic": False,
@@ -68,8 +70,19 @@ def get_system_info(db: Session = Depends(get_db)):
         pass
 
     try:
+        import fitz
+        info["pymupdf"] = True
+    except ImportError:
+        pass
+
+    try:
         import pytesseract
         info["pytesseract"] = True
+        try:
+            pytesseract.get_tesseract_version()
+            info["tesseract_bin"] = True
+        except Exception:
+            pass
     except ImportError:
         pass
 
