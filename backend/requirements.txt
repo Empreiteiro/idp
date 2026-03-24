@@ -1,0 +1,14 @@
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+sqlalchemy>=2.0.0
+pytesseract>=0.3.13
+pdf2image>=1.17.0
+pdfplumber>=0.11.0
+Pillow>=10.0.0
+openai>=1.50.0
+anthropic>=0.40.0
+google-genai>=1.0.0
+python-multipart>=0.0.12
+pydantic-settings>=2.6.0
+python-dotenv>=1.0.0
+aiofiles>=24.1.0

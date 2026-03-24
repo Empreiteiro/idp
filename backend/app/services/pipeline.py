@@ -1,0 +1,168 @@
+"""Document processing pipeline orchestrator."""
+
+import json
+from sqlalchemy.orm import Session
+
+from app.models import Template, TemplateField, Document, ExtractionResult
+from app.services.ocr import extract_text
+from app.services.ai_extractor import extract_fields
+from app.services.classifier import classify_document
+from app.services.field_suggester import suggest_fields
+from app.core.file_utils import get_file_full_path
+
+
+def _log(db: Session, action: str, entity_type: str, entity_id=None, entity_name=None, details=None, status="success"):
+    """Best-effort activity logging."""
+    try:
+        from app.api.activity import log_activity
+        log_activity(db, action, entity_type, entity_id, entity_name, details, status)
+    except Exception:
+        pass
+
+
+async def process_document(db: Session, document_id: int) -> None:
+    """Full processing pipeline for a document.
+
+    Steps:
+    1. OCR - extract text from document
+    2. Classify - if no template, auto-classify
+    3. Extract - extract fields using template
+    4. Store - save extraction results
+    """
+    doc = db.query(Document).filter(Document.id == document_id).first()
+    if not doc:
+        raise ValueError(f"Document {document_id} not found")
+
+    _log(db, "process_start", "document", doc.id, doc.filename)
+
+    try:
+        # Step 1: OCR
+        doc.status = "ocr_processing"
+        db.commit()
+
+        file_path = get_file_full_path(doc.file_path)
+        ocr_text, page_count = extract_text(file_path, doc.file_type)
+
+        doc.ocr_text = ocr_text
+        doc.page_count = page_count
+        doc.status = "ocr_complete"
+        db.commit()
+
+        if not ocr_text.strip():
+            doc.status = "failed"
+            doc.error_message = "OCR produced no text. The document may be empty or unreadable."
+            db.commit()
+            return
+
+        # Step 2: Classification (if no template assigned)
+        if not doc.template_id:
+            doc.status = "classifying"
+            db.commit()
+
+            templates = db.query(Template).all()
+            if templates:
+                template_data = []
+                for t in templates:
+                    field_names = [f.field_name for f in t.fields]
+                    template_data.append({
+                        "id": t.id,
+                        "name": t.name,
+                        "description": t.description or "",
+                        "field_names": field_names,
+                    })
+
+                result = await classify_document(db, ocr_text, template_data)
+                doc.classification_confidence = result.get("confidence", 0.0)
+
+                if result.get("template_id") and result.get("confidence", 0) >= 0.6:
+                    doc.template_id = result["template_id"]
+                else:
+                    doc.status = "review"
+                    doc.error_message = (
+                        f"Auto-classification uncertain. "
+                        f"Suggested: {result.get('suggested_type', 'Unknown')}. "
+                        f"Confidence: {result.get('confidence', 0):.0%}"
+                    )
+                    db.commit()
+                    return
+            else:
+                doc.status = "review"
+                doc.error_message = "No templates available. Create a template first or assign one manually."
+                db.commit()
+                return
+
+        # Step 3: Extract fields
+        doc.status = "extracting"
+        db.commit()
+
+        template = db.query(Template).filter(Template.id == doc.template_id).first()
+        if not template or not template.fields:
+            doc.status = "failed"
+            doc.error_message = "Template has no fields defined. Add fields to the template first."
+            db.commit()
+            return
+
+        fields_data = [
+            {
+                "field_name": f.field_name,
+                "field_label": f.field_label,
+                "field_type": f.field_type,
+            }
+            for f in template.fields
+        ]
+
+        extracted_data = await extract_fields(db, ocr_text, fields_data)
+
+        # Step 4: Store results
+        extraction = ExtractionResult(
+            document_id=doc.id,
+            template_id=doc.template_id,
+            extracted_data=json.dumps(extracted_data),
+        )
+        db.add(extraction)
+        doc.status = "completed"
+        db.commit()
+
+        _log(db, "process_complete", "document", doc.id, doc.filename,
+             f"Extracted {len(extracted_data)} fields from template '{template.name}'")
+
+    except Exception as e:
+        doc.status = "failed"
+        doc.error_message = str(e)
+        db.commit()
+        _log(db, "process_failed", "document", doc.id, doc.filename, str(e), "error")
+        raise
+
+
+async def suggest_fields_for_template(db: Session, template: Template) -> None:
+    """Run AI field suggestion on a template's example document."""
+    if not template.example_file:
+        raise ValueError("Template has no example file")
+
+    file_path = get_file_full_path(template.example_file)
+    file_ext = template.example_file.rsplit(".", 1)[-1].lower()
+    file_type = "pdf" if file_ext == "pdf" else f"image/{file_ext}"
+
+    ocr_text, _ = extract_text(file_path, file_type)
+
+    if not ocr_text.strip():
+        raise ValueError("OCR produced no text from the example document")
+
+    suggested = await suggest_fields(db, ocr_text)
+
+    # Clear existing fields and add new ones
+    db.query(TemplateField).filter(TemplateField.template_id == template.id).delete()
+    db.flush()
+
+    for field_data in suggested:
+        field = TemplateField(
+            template_id=template.id,
+            field_name=field_data["field_name"],
+            field_label=field_data["field_label"],
+            field_type=field_data["field_type"],
+            required=field_data.get("required", False),
+            sort_order=field_data.get("sort_order", 0),
+        )
+        db.add(field)
+
+    db.commit()
