@@ -71,7 +71,10 @@ async def process_document(db: Session, document_id: int) -> None:
                         "field_names": field_names,
                     })
 
-                result = await classify_document(db, ocr_text, template_data)
+                result = await classify_document(
+                    db, ocr_text, template_data,
+                    document_id=doc.id, document_name=doc.filename,
+                )
                 doc.classification_confidence = result.get("confidence", 0.0)
 
                 if result.get("template_id") and result.get("confidence", 0) >= 0.6:
@@ -111,7 +114,11 @@ async def process_document(db: Session, document_id: int) -> None:
             for f in template.fields
         ]
 
-        extracted_data = await extract_fields(db, ocr_text, fields_data)
+        extracted_data = await extract_fields(
+            db, ocr_text, fields_data,
+            document_id=doc.id, template_id=doc.template_id,
+            document_name=doc.filename,
+        )
 
         # Step 4: Store results
         extraction = ExtractionResult(
@@ -148,7 +155,10 @@ async def suggest_fields_for_template(db: Session, template: Template) -> None:
     if not ocr_text.strip():
         raise ValueError("OCR produced no text from the example document")
 
-    suggested = await suggest_fields(db, ocr_text)
+    suggested = await suggest_fields(
+        db, ocr_text,
+        template_id=template.id, template_name=template.name,
+    )
 
     # Clear existing fields and add new ones
     db.query(TemplateField).filter(TemplateField.template_id == template.id).delete()

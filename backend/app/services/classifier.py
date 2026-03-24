@@ -3,7 +3,7 @@
 import json
 from sqlalchemy.orm import Session
 
-from app.services.ai_provider import get_provider
+from app.services.ai_provider import get_provider, save_trace
 
 
 CLASSIFICATION_SYSTEM_PROMPT = """You are a document classification assistant.
@@ -30,17 +30,10 @@ async def classify_document(
     db: Session,
     ocr_text: str,
     templates: list[dict],
+    document_id: int | None = None,
+    document_name: str | None = None,
 ) -> dict:
-    """Classify a document into one of the available templates.
-
-    Args:
-        db: Database session
-        ocr_text: The OCR text from the document
-        templates: List of dicts with: id, name, description, field_names
-
-    Returns:
-        Dict with: template_id, confidence, reasoning, suggested_type (optional)
-    """
+    """Classify a document into one of the available templates."""
     if not templates:
         return {
             "template_id": None,
@@ -64,7 +57,11 @@ Available templates:
 Document text (first 4000 chars):
 {ocr_text[:4000]}"""
 
-    response_text = await provider.complete(CLASSIFICATION_SYSTEM_PROMPT, user_prompt)
+    response_text, trace = await provider.complete(CLASSIFICATION_SYSTEM_PROMPT, user_prompt)
+
+    # Save trace
+    save_trace(db, trace, "classification", document_id=document_id,
+               entity_name=document_name)
 
     data = _parse_json_response(response_text)
 

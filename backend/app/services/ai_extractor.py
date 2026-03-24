@@ -3,7 +3,7 @@
 import json
 from sqlalchemy.orm import Session
 
-from app.services.ai_provider import get_provider
+from app.services.ai_provider import get_provider, save_trace
 
 
 EXTRACTION_SYSTEM_PROMPT = """You are a document processing assistant that extracts structured data from OCR text.
@@ -25,17 +25,11 @@ async def extract_fields(
     db: Session,
     ocr_text: str,
     fields: list[dict],
+    document_id: int | None = None,
+    template_id: int | None = None,
+    document_name: str | None = None,
 ) -> dict:
-    """Extract fields from OCR text using AI.
-
-    Args:
-        db: Database session (for getting AI settings)
-        ocr_text: The raw OCR text from the document
-        fields: List of dicts with keys: field_name, field_label, field_type
-
-    Returns:
-        Dict with field_name -> {value, confidence, original_value, corrected}
-    """
+    """Extract fields from OCR text using AI."""
     provider = get_provider(db)
 
     fields_description = "\n".join(
@@ -51,7 +45,11 @@ Fields to extract:
 Document text:
 {ocr_text[:8000]}"""
 
-    response_text = await provider.complete(EXTRACTION_SYSTEM_PROMPT, user_prompt)
+    response_text, trace = await provider.complete(EXTRACTION_SYSTEM_PROMPT, user_prompt)
+
+    # Save trace
+    save_trace(db, trace, "extraction", document_id=document_id,
+               template_id=template_id, entity_name=document_name)
 
     # Parse JSON from response
     data = _parse_json_response(response_text)

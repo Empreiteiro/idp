@@ -10,6 +10,7 @@ import {
   Settings,
   Brain,
   Table2,
+  Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +20,7 @@ const navItems = [
   { href: "/documents", label: "Documents", icon: FileText },
   { href: "/documents/upload", label: "Upload", icon: Upload },
   { href: "/data", label: "Extracted Data", icon: Table2 },
+  { href: "/llm-logs", label: "LLM Logs", icon: Activity },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

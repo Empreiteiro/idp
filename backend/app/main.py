@@ -11,6 +11,7 @@ from app.api.dashboard import router as dashboard_router
 from app.api.settings_api import router as settings_router
 from app.api.data_tables import router as data_tables_router
 from app.api.activity import router as activity_router
+from app.api.llm_logs import router as llm_logs_router
 
 
 @asynccontextmanager
@@ -41,6 +42,7 @@ app.include_router(dashboard_router)
 app.include_router(settings_router)
 app.include_router(data_tables_router)
 app.include_router(activity_router)
+app.include_router(llm_logs_router)
 
 
 @app.get("/api/health")

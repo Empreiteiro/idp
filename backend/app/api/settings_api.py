@@ -14,15 +14,16 @@ ALLOWED_KEYS = {"ai_provider", "ai_api_key", "ai_model", "tesseract_path", "popp
 async def test_ai_connection(db: Session = Depends(get_db)):
     """Test the AI provider connection with a simple request."""
     try:
-        from app.services.ai_provider import get_provider
+        from app.services.ai_provider import get_provider, save_trace
         provider = get_provider(db)
-        response = await provider.complete(
+        response_text, trace = await provider.complete(
             "You are a helpful assistant. Reply with exactly: CONNECTION_OK",
             "Test connection. Reply with exactly: CONNECTION_OK"
         )
-        if "CONNECTION_OK" in response:
-            return {"status": "ok", "message": "AI connection successful", "response": response.strip()[:100]}
-        return {"status": "ok", "message": "AI responded but unexpected format", "response": response.strip()[:100]}
+        save_trace(db, trace, "connection_test")
+        if "CONNECTION_OK" in response_text:
+            return {"status": "ok", "message": "AI connection successful", "response": response_text.strip()[:100]}
+        return {"status": "ok", "message": "AI responded but unexpected format", "response": response_text.strip()[:100]}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 

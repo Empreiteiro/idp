@@ -3,7 +3,7 @@
 import json
 from sqlalchemy.orm import Session
 
-from app.services.ai_provider import get_provider
+from app.services.ai_provider import get_provider, save_trace
 
 
 SUGGESTION_SYSTEM_PROMPT = """You are a document analysis assistant.
@@ -29,11 +29,13 @@ Use snake_case for field_name and descriptive labels for field_label.
 Field names should be in English."""
 
 
-async def suggest_fields(db: Session, ocr_text: str) -> list[dict]:
-    """Analyze document text and suggest extractable fields.
-
-    Returns list of dicts with: field_name, field_label, field_type, required
-    """
+async def suggest_fields(
+    db: Session,
+    ocr_text: str,
+    template_id: int | None = None,
+    template_name: str | None = None,
+) -> list[dict]:
+    """Analyze document text and suggest extractable fields."""
     provider = get_provider(db)
 
     user_prompt = f"""Analyze this document and suggest fields that can be extracted:
@@ -41,7 +43,11 @@ async def suggest_fields(db: Session, ocr_text: str) -> list[dict]:
 Document text:
 {ocr_text[:8000]}"""
 
-    response_text = await provider.complete(SUGGESTION_SYSTEM_PROMPT, user_prompt)
+    response_text, trace = await provider.complete(SUGGESTION_SYSTEM_PROMPT, user_prompt)
+
+    # Save trace
+    save_trace(db, trace, "field_suggestion", template_id=template_id,
+               entity_name=template_name)
 
     data = _parse_json_response(response_text)
     fields = data.get("fields", [])
