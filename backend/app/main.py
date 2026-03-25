@@ -9,6 +9,14 @@ import logging
 
 from app.config import settings
 from app.database import init_db
+from app.middleware.logging import RequestLoggingMiddleware
+
+# Configure root logger
+logging.basicConfig(
+    level=getattr(logging, settings.log_level.upper(), logging.INFO),
+    format="%(asctime)s %(levelname)-5s [%(name)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 from app.api.templates import router as templates_router
 from app.api.documents import router as documents_router
 from app.api.extraction import router as extraction_router
@@ -39,6 +47,7 @@ app = FastAPI(
 
 cors_origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
 
+app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
