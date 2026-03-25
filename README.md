@@ -1,59 +1,130 @@
 # IDP - Intelligent Document Processing
 
-Plataforma completa para processamento inteligente de documentos com OCR e IA.
+A full-stack platform for intelligent document processing with OCR and AI.
 
 ## Features
 
-- **Template Management**: Crie templates de extração com sugestão automática de campos via IA
-- **Document Upload**: Upload de PDFs e imagens com extração automática de dados
-- **Auto-Classification**: Classificação automática de documentos em templates existentes
-- **Multi-Provider AI**: Suporte a OpenAI, Claude (Anthropic) e Gemini (Google)
-- **Extraction Review**: Interface de revisão com edição inline e badges de confiança
-- **Data Tables**: Visualização tabular dos dados extraídos por template
-- **CSV Export**: Exportação dos dados extraídos para CSV
-- **Activity Log**: Histórico de todas as operações da plataforma
-- **Batch Upload**: Upload de múltiplos documentos de uma vez
-- **Connection Testing**: Teste de conexão com AI e OCR direto na interface
-- **Dashboard**: Estatísticas e visão geral do processamento
-- **Template Assignment**: Atribuição manual de templates para documentos não classificados
+- **Template Management**: Create extraction templates with AI-powered field suggestions
+- **Document Upload**: Upload PDFs and images with automatic data extraction
+- **Auto-Classification**: Automatic document classification into existing templates
+- **Multi-Provider AI**: Support for OpenAI, Claude (Anthropic), and Gemini (Google)
+- **Extraction Review**: Review interface with inline editing and confidence badges
+- **Data Tables**: Tabular view of extracted data by template
+- **CSV Export**: Export extracted data to CSV
+- **Activity Log**: Full history of all platform operations
+- **Batch Upload**: Upload multiple documents at once
+- **Connection Testing**: Test AI and OCR connections directly from the UI
+- **Dashboard**: Processing statistics and overview
+- **Template Assignment**: Manual template assignment for unclassified documents
 
 ## Tech Stack
 
-| Camada | Tecnologia |
-|--------|-----------|
+| Layer | Technology |
+|-------|-----------|
 | Backend | FastAPI + SQLAlchemy + SQLite |
-| OCR | pdfplumber (primário) + Tesseract + pdf2image (fallback) |
-| IA | OpenAI / Claude / Gemini (configurável) |
+| OCR | pdfplumber (primary) + Tesseract + pdf2image (fallback) |
+| AI | OpenAI / Claude / Gemini (configurable) |
 | Frontend | Next.js + TypeScript + Tailwind CSS + shadcn/ui |
 | State | TanStack Query (React Query) |
 
-## Pre-requisites
+## Prerequisites
 
-### Python 3.10+
-Backend requires Python 3.10 or newer.
+- **Python 3.10+**
+- **Node.js 18+**
+- **Tesseract OCR** (optional, only needed for scanned PDFs)
+- **libmagic** (file type detection)
 
-### Node.js 18+
-Frontend requires Node.js 18 or newer.
+### Installing system dependencies
 
-### Tesseract OCR (opcional para PDFs com texto)
-Para PDFs digitais (com texto selecionável), a plataforma usa **pdfplumber** que não precisa de instalação extra.
+<details>
+<summary>macOS</summary>
 
-Para PDFs escaneados (imagens), é necessário:
-1. Download Tesseract: https://github.com/UB-Mannheim/tesseract/wiki
-2. Instale e adicione ao PATH ou configure na página de Settings
+```bash
+brew install python3 node tesseract libmagic poppler
+```
+</details>
 
-### Poppler (opcional - apenas para PDFs escaneados)
-1. Download: https://github.com/oschwartz10612/poppler-windows/releases
-2. Extraia e adicione `bin/` ao PATH ou configure na página de Settings
+<details>
+<summary>Ubuntu / Debian</summary>
 
-## Setup
+```bash
+sudo apt install python3 python3-pip python3-venv nodejs npm tesseract-ocr libmagic1 poppler-utils
+```
+</details>
+
+<details>
+<summary>Fedora</summary>
+
+```bash
+sudo dnf install python3 python3-pip nodejs npm tesseract libmagic poppler-utils
+```
+</details>
+
+<details>
+<summary>Windows</summary>
+
+1. Python: https://www.python.org/downloads/
+2. Node.js: https://nodejs.org/
+3. Tesseract: https://github.com/UB-Mannheim/tesseract/wiki
+4. Poppler: https://github.com/oschwartz10612/poppler-windows/releases
+</details>
+
+## Quick Start
+
+The project includes a **Makefile** that auto-detects your toolchain (Python, Node, OS) and handles dependency installation automatically.
+
+```bash
+# Full setup (check dependencies, create .env, install packages)
+make setup
+
+# Start both backend and frontend in dev mode (with hot-reload)
+make dev
+```
+
+That's it. The `make dev` command will automatically install missing dependencies before starting.
+
+## Available Make Commands
+
+Run `make help` to see all commands with your detected toolchain:
+
+| Command | Description |
+|---------|-------------|
+| `make setup` | Full project setup (check deps, create .env, install) |
+| `make install` | Install all dependencies |
+| `make dev` | Start backend + frontend in dev mode (parallel, hot-reload) |
+| `make dev-backend` | Start only the backend in dev mode |
+| `make dev-frontend` | Start only the frontend in dev mode |
+| `make start` | Start both in production mode |
+| `make build` | Build frontend for production |
+| `make test` | Run backend tests |
+| `make lint` | Run frontend linter |
+| `make migrate` | Run database migrations |
+| `make migrate-new MSG="desc"` | Create a new migration |
+| `make venv` | Create a Python virtual environment (.venv) |
+| `make env` | Create .env from .env.example |
+| `make clean` | Remove build artifacts and caches |
+| `make check-deps` | Verify all required tools are installed |
+
+### Using a virtual environment (recommended)
+
+```bash
+make venv
+source .venv/bin/activate   # Linux/macOS
+# .venv\Scripts\activate    # Windows
+make setup
+make dev
+```
+
+## Manual Setup
+
+If you prefer not to use Make:
 
 ### Backend
 ```bash
 cd backend
 pip install -r requirements.txt
 cp .env.example .env
-# Edite .env com sua API key (ou configure na interface)
+# Edit .env with your API key (or configure via the UI)
 python run.py
 ```
 
@@ -64,52 +135,52 @@ npm install
 npm run dev
 ```
 
-## Fluxo de Uso
+## Usage
 
-### 1. Configuração Inicial
-- Abra http://localhost:3000
-- Vá em **Settings** e configure o provedor de IA + chave API
-- Use "Test AI Connection" para verificar a conexão
+### 1. Initial Configuration
+- Open http://localhost:3000
+- Go to **Settings** and configure the AI provider + API key
+- Click "Test AI Connection" to verify
 
-### 2. Criar Template
-- Vá em **Templates** > **New Template**
-- Dê um nome (ex: "Nota Fiscal", "Contrato", "Recibo")
-- Faça upload de um documento de exemplo
-- A IA sugere automaticamente os campos extraíveis
-- Revise, adicione ou remova campos conforme necessário
+### 2. Create a Template
+- Go to **Templates** > **New Template**
+- Enter a name (e.g., "Invoice", "Contract", "Receipt")
+- Upload a sample document
+- AI will automatically suggest extractable fields
+- Review, add, or remove fields as needed
 
-### 3. Processar Documentos
-- Vá em **Upload** e selecione um ou mais documentos
-- Escolha um template ou deixe a IA classificar automaticamente
-- O sistema executa: OCR > Classificação > Extração > Armazenamento
+### 3. Process Documents
+- Go to **Upload** and select one or more documents
+- Choose a template or let the AI classify automatically
+- The system runs: OCR > Classification > Extraction > Storage
 
-### 4. Revisar Dados
-- Em **Documents**, clique em um documento processado
-- Visualize o documento lado a lado com os dados extraídos
-- Edite valores incorretos e aprove a extração
+### 4. Review Data
+- In **Documents**, click on a processed document
+- View the document side by side with extracted data
+- Edit incorrect values and approve the extraction
 
-### 5. Visualizar Dados
-- Em **Extracted Data**, veja todos os dados em formato tabular
-- Filtre por template, busque valores específicos
-- Exporte para CSV para uso em planilhas
+### 5. View & Export
+- In **Extracted Data**, see all data in tabular format
+- Filter by template, search for specific values
+- Export to CSV for use in spreadsheets
 
 ## API Documentation
 
-Backend Swagger UI: http://localhost:8000/docs
+Swagger UI: http://localhost:8000/docs
 
-### Principais Endpoints
+### Main Endpoints
 
-| Método | Endpoint | Descrição |
-|--------|----------|-----------|
-| GET | /api/dashboard/stats | Estatísticas gerais |
-| POST | /api/templates | Criar template |
-| POST | /api/templates/{id}/suggest-fields | Sugerir campos via IA |
-| POST | /api/documents/upload | Upload de documento |
-| POST | /api/documents/upload-batch | Upload em lote |
-| GET | /api/documents/{id} | Detalhes do documento |
-| PUT | /api/documents/{id}/assign-template | Atribuir template |
-| GET | /api/data/templates/{id}/table | Dados tabulares |
-| GET | /api/data/templates/{id}/export | Exportar CSV |
-| GET | /api/activity | Log de atividades |
-| POST | /api/settings/test-ai | Testar conexão AI |
-| POST | /api/settings/test-ocr | Testar OCR |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/dashboard/stats | General statistics |
+| POST | /api/templates | Create template |
+| POST | /api/templates/{id}/suggest-fields | AI field suggestions |
+| POST | /api/documents/upload | Upload document |
+| POST | /api/documents/upload-batch | Batch upload |
+| GET | /api/documents/{id} | Document details |
+| PUT | /api/documents/{id}/assign-template | Assign template |
+| GET | /api/data/templates/{id}/table | Tabular data |
+| GET | /api/data/templates/{id}/export | Export CSV |
+| GET | /api/activity | Activity log |
+| POST | /api/settings/test-ai | Test AI connection |
+| POST | /api/settings/test-ocr | Test OCR |
