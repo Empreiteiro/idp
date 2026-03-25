@@ -1,11 +1,24 @@
+import logging
 import uuid
 from pathlib import Path
 
+import magic
 from fastapi import UploadFile
 
 from app.config import settings
 
+logger = logging.getLogger(__name__)
+
 ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp", ".webp"}
+
+ALLOWED_MIME_TYPES = {
+    "application/pdf",
+    "image/png",
+    "image/jpeg",
+    "image/tiff",
+    "image/bmp",
+    "image/webp",
+}
 
 
 def validate_file_type(filename: str) -> bool:
@@ -15,6 +28,21 @@ def validate_file_type(filename: str) -> bool:
 
 def get_file_extension(filename: str) -> str:
     return Path(filename).suffix.lower()
+
+
+def validate_file_content(file_bytes: bytes) -> str:
+    """Validate file content by checking magic bytes against allowed MIME types.
+
+    Returns the detected MIME type if valid, raises ValueError otherwise.
+    """
+    detected_mime = magic.from_buffer(file_bytes, mime=True)
+    if detected_mime not in ALLOWED_MIME_TYPES:
+        raise ValueError(
+            f"File content type '{detected_mime}' is not allowed. "
+            f"Allowed types: {', '.join(sorted(ALLOWED_MIME_TYPES))}"
+        )
+    logger.debug("File content validated: detected MIME type '%s'", detected_mime)
+    return detected_mime
 
 
 async def save_upload_file(file: UploadFile) -> tuple[str, int]:
@@ -29,6 +57,9 @@ async def save_upload_file(file: UploadFile) -> tuple[str, int]:
     max_bytes = settings.max_file_size_mb * 1024 * 1024
     if file_size > max_bytes:
         raise ValueError(f"File size exceeds {settings.max_file_size_mb}MB limit")
+
+    # Validate actual file content via magic bytes
+    validate_file_content(content)
 
     with open(file_path, "wb") as f:
         f.write(content)
