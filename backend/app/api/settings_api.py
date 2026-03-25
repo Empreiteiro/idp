@@ -138,6 +138,9 @@ def _get_all_settings(db: Session) -> dict[str, str]:
     result = {}
     for r in rows:
         val = r.value
+        if r.key == "ai_api_key":
+            from app.utils.encryption import decrypt_value
+            val = decrypt_value(val)
         if r.key == "ai_api_key" and len(val) > 8:
             val = val[:4] + "..." + val[-4:]
         result[r.key] = val
@@ -154,11 +157,16 @@ def update_setting(data: SettingUpdate, db: Session = Depends(get_db)):
     if data.key not in ALLOWED_KEYS:
         raise HTTPException(400, f"Unknown setting: {data.key}")
 
+    value = data.value
+    if data.key == "ai_api_key" and value:
+        from app.utils.encryption import encrypt_value
+        value = encrypt_value(value)
+
     setting = db.query(AppSettings).filter(AppSettings.key == data.key).first()
     if setting:
-        setting.value = data.value
+        setting.value = value
     else:
-        setting = AppSettings(key=data.key, value=data.value)
+        setting = AppSettings(key=data.key, value=value)
         db.add(setting)
     db.commit()
     return SuccessResponse(message=f"Setting '{data.key}' updated")
@@ -170,6 +178,9 @@ def update_settings_bulk(settings: dict[str, str], db: Session = Depends(get_db)
     for key, value in settings.items():
         if key not in ALLOWED_KEYS:
             continue
+        if key == "ai_api_key" and value:
+            from app.utils.encryption import encrypt_value
+            value = encrypt_value(value)
         setting = db.query(AppSettings).filter(AppSettings.key == key).first()
         if setting:
             setting.value = value
