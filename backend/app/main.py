@@ -4,12 +4,15 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 import logging
 
 from app.config import settings
 from app.database import init_db
 from app.middleware.logging import RequestLoggingMiddleware
+from app.core.rate_limit import limiter
 
 # Configure root logger
 logging.basicConfig(
@@ -25,6 +28,7 @@ from app.api.settings_api import router as settings_router
 from app.api.data_tables import router as data_tables_router
 from app.api.activity import router as activity_router
 from app.api.llm_logs import router as llm_logs_router
+from app.api.auth import router as auth_router
 
 
 logger = logging.getLogger("idp")
@@ -44,6 +48,9 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 cors_origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
 
@@ -97,6 +104,7 @@ app.include_router(settings_router)
 app.include_router(data_tables_router)
 app.include_router(activity_router)
 app.include_router(llm_logs_router)
+app.include_router(auth_router)
 
 
 @app.get("/api/health")

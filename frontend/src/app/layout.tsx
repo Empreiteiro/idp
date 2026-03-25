@@ -23,9 +23,15 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body className={`${inter.className} antialiased`}>
         <QueryProvider>
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-background focus:text-foreground"
+          >
+            Skip to main content
+          </a>
           <div className="flex h-screen overflow-hidden">
             <Sidebar />
-            <main className="flex-1 overflow-y-auto bg-background">
+            <main id="main-content" className="flex-1 overflow-y-auto bg-background">
               <div className="p-6">
                 <ErrorBoundary>{children}</ErrorBoundary>
               </div>
