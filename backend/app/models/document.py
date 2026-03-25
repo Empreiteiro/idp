@@ -15,14 +15,14 @@ class Document(Base):
     file_type: Mapped[str] = mapped_column(String(50), nullable=False)
     file_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
     template_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("templates.id", ondelete="SET NULL"), nullable=True
+        Integer, ForeignKey("templates.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    status: Mapped[str] = mapped_column(String(50), nullable=False, default="uploaded")
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="uploaded", index=True)
     ocr_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     classification_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     page_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     template: Mapped["Template | None"] = relationship(back_populates="documents")
