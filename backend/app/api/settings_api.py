@@ -22,7 +22,8 @@ async def test_ai_connection(request: Request, db: Session = Depends(get_db)):
         provider = get_provider(db)
         response_text, trace = await provider.complete(
             "You are a helpful assistant. Reply with exactly: CONNECTION_OK",
-            "Test connection. Reply with exactly: CONNECTION_OK"
+            "Test connection. Reply with exactly: CONNECTION_OK",
+            json_mode=False,
         )
         save_trace(db, trace, "connection_test")
         if "CONNECTION_OK" in response_text:

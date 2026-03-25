@@ -69,8 +69,13 @@ class AIProvider(ABC):
         self.model = model
 
     @abstractmethod
-    async def complete(self, system: str, user: str) -> tuple[str, LLMTrace]:
-        """Send a completion request. Returns (response_text, trace)."""
+    async def complete(self, system: str, user: str, *, json_mode: bool = True) -> tuple[str, LLMTrace]:
+        """Send a completion request. Returns (response_text, trace).
+
+        Args:
+            json_mode: When True, instruct the provider to return JSON.
+                       When False, allow free-form text (e.g. Markdown).
+        """
         ...
 
 
@@ -80,7 +85,7 @@ class AIProvider(ABC):
 class OpenAIProvider(AIProvider):
     provider_name = "openai"
 
-    async def complete(self, system: str, user: str) -> tuple[str, LLMTrace]:
+    async def complete(self, system: str, user: str, *, json_mode: bool = True) -> tuple[str, LLMTrace]:
         from openai import OpenAI
 
         trace = LLMTrace(
@@ -92,15 +97,17 @@ class OpenAIProvider(AIProvider):
         t0 = time.perf_counter()
         try:
             client = OpenAI(api_key=self.api_key)
-            response = client.chat.completions.create(
+            kwargs: dict = dict(
                 model=trace.model,
                 messages=[
                     {"role": "system", "content": system},
                     {"role": "user", "content": user},
                 ],
                 temperature=0.0,
-                response_format={"type": "json_object"},
             )
+            if json_mode:
+                kwargs["response_format"] = {"type": "json_object"}
+            response = client.chat.completions.create(**kwargs)
             trace.latency_ms = int((time.perf_counter() - t0) * 1000)
             trace.response_text = response.choices[0].message.content or ""
 
@@ -125,7 +132,7 @@ class OpenAIProvider(AIProvider):
 class ClaudeProvider(AIProvider):
     provider_name = "claude"
 
-    async def complete(self, system: str, user: str) -> tuple[str, LLMTrace]:
+    async def complete(self, system: str, user: str, *, json_mode: bool = True) -> tuple[str, LLMTrace]:
         from anthropic import Anthropic
 
         trace = LLMTrace(
@@ -168,7 +175,7 @@ class ClaudeProvider(AIProvider):
 class GeminiProvider(AIProvider):
     provider_name = "gemini"
 
-    async def complete(self, system: str, user: str) -> tuple[str, LLMTrace]:
+    async def complete(self, system: str, user: str, *, json_mode: bool = True) -> tuple[str, LLMTrace]:
         from google import genai
 
         trace = LLMTrace(
@@ -180,13 +187,13 @@ class GeminiProvider(AIProvider):
         t0 = time.perf_counter()
         try:
             client = genai.Client(api_key=self.api_key)
+            gen_config: dict = {"temperature": 0.0}
+            if json_mode:
+                gen_config["response_mime_type"] = "application/json"
             response = client.models.generate_content(
                 model=trace.model,
                 contents=f"{system}\n\n{user}",
-                config=genai.types.GenerateContentConfig(
-                    temperature=0.0,
-                    response_mime_type="application/json",
-                ),
+                config=genai.types.GenerateContentConfig(**gen_config),
             )
             trace.latency_ms = int((time.perf_counter() - t0) * 1000)
             trace.response_text = response.text or ""
