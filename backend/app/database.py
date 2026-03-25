@@ -35,6 +35,26 @@ def get_db():
 
 
 def init_db():
+    """Initialize database — create tables if they don't exist.
+
+    Uses Alembic stamp to mark existing databases as up-to-date.
+    Falls back to create_all for fresh databases.
+    """
     from app.models import template, document, extraction, activity, llm_log  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
+
+    # Stamp the database with the current Alembic revision if not yet tracked
+    try:
+        from alembic.config import Config
+        from alembic import command
+        from alembic.runtime.migration import MigrationContext
+
+        with engine.connect() as conn:
+            migration_ctx = MigrationContext.configure(conn)
+            current_rev = migration_ctx.get_current_revision()
+            if current_rev is None:
+                alembic_cfg = Config("alembic.ini")
+                command.stamp(alembic_cfg, "head")
+    except Exception:
+        pass  # Alembic not required for basic operation
