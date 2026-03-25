@@ -1,8 +1,5 @@
 """Shared constants used across backend services and API."""
 
-# Classification confidence threshold — documents below this go to review
-CLASSIFICATION_CONFIDENCE_THRESHOLD = 0.6
-
 # Maximum text length sent to AI providers
 AI_TEXT_MAX_LENGTH = 8000
 

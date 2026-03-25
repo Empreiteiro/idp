@@ -5,6 +5,9 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+import logging
+
+from app.config import settings
 from app.database import init_db
 from app.api.templates import router as templates_router
 from app.api.documents import router as documents_router
@@ -16,9 +19,14 @@ from app.api.activity import router as activity_router
 from app.api.llm_logs import router as llm_logs_router
 
 
+logger = logging.getLogger("idp")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    if not settings.ai_api_key:
+        logger.warning("AI_API_KEY not set — document processing will fail until configured")
     yield
 
 
@@ -29,9 +37,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+cors_origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

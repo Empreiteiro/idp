@@ -19,6 +19,15 @@ class Settings(BaseSettings):
     upload_dir: str = "./uploads"
     max_file_size_mb: int = 50
 
+    # CORS
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+
+    # Classification
+    classification_threshold: float = 0.6
+
+    # Logging
+    log_level: str = "INFO"
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
     @property
