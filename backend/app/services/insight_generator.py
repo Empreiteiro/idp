@@ -198,7 +198,7 @@ async def generate_insights(
 
             logger.info("Generating insight '%s' for %d document(s)", title, len(doc_group))
 
-            response_text, trace = await provider.complete(system_prompt, user_prompt)
+            response_text, trace = await provider.complete(system_prompt, user_prompt, json_mode=False)
 
             # Save LLM trace
             doc_id_for_trace = doc_group[0].id if len(doc_group) == 1 else None

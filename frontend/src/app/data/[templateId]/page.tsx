@@ -22,8 +22,76 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
+  Table2,
+  X,
 } from "lucide-react";
 import Link from "next/link";
+
+/** Renders a cell value — arrays/objects get a clickable badge that opens a subtable popover. */
+function CellValue({ value }: { value: unknown }) {
+  const [open, setOpen] = useState(false);
+
+  if (value == null) return <span className="text-muted-foreground">-</span>;
+
+  // Array of objects → show as expandable subtable
+  if (Array.isArray(value) && value.length > 0 && typeof value[0] === "object") {
+    const rows = value as Record<string, unknown>[];
+    const cols = Object.keys(rows[0] || {});
+    return (
+      <span className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs font-medium text-primary hover:bg-muted transition-colors"
+        >
+          <Table2 className="h-3 w-3" />
+          {rows.length} row{rows.length !== 1 ? "s" : ""}
+        </button>
+        {open && (
+          <div className="absolute left-0 top-full z-50 mt-1 min-w-[300px] max-w-[600px] overflow-auto rounded-lg border bg-popover shadow-lg">
+            <div className="flex items-center justify-between border-b px-3 py-2">
+              <span className="text-xs font-medium text-muted-foreground">
+                {rows.length} row{rows.length !== 1 ? "s" : ""}
+              </span>
+              <button type="button" onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b bg-muted/40">
+                  {cols.map((c) => (
+                    <th key={c} className="whitespace-nowrap px-3 py-1.5 text-left font-medium text-muted-foreground">
+                      {c}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr key={i} className="border-b last:border-0">
+                    {cols.map((c) => (
+                      <td key={c} className="max-w-[200px] truncate px-3 py-1.5">
+                        {r[c] != null ? String(r[c]) : "-"}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </span>
+    );
+  }
+
+  // Plain object → show JSON preview
+  if (typeof value === "object") {
+    return <span className="text-xs text-muted-foreground">{JSON.stringify(value)}</span>;
+  }
+
+  return <>{String(value)}</>;
+}
 
 function ConfidenceDot({ value }: { value: number }) {
   const color =
@@ -199,12 +267,9 @@ export default function DataTablePage() {
                       {data.columns.map((col) => (
                         <td
                           key={col.field_name}
-                          className="max-w-[250px] truncate px-4 py-3"
-                          title={String(row[col.field_name] ?? "")}
+                          className="max-w-[250px] px-4 py-3"
                         >
-                          {row[col.field_name] != null
-                            ? String(row[col.field_name])
-                            : "-"}
+                          <CellValue value={row[col.field_name]} />
                         </td>
                       ))}
                       <td className="whitespace-nowrap px-4 py-3">
