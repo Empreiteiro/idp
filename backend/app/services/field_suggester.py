@@ -23,11 +23,30 @@ Return an array of field objects:
   ]
 }
 
-Available field_type values: text, number, date, currency, boolean
+Available field_type values: text, number, date, currency, boolean, table
+
+When the document contains tabular data (multiple rows of the same structure, such as line items, lists of assets, income sources, etc.), suggest a field with field_type "table" and include a "columns" array defining the table structure.
+Each column object has: name (snake_case), label (human-readable), type (text/number/date/currency/boolean).
+Example of a table field:
+{
+  "field_name": "income_sources",
+  "field_label": "Income Sources",
+  "field_type": "table",
+  "required": true,
+  "columns": [
+    {"name": "source_name", "label": "Source Name", "type": "text"},
+    {"name": "amount", "label": "Amount", "type": "currency"}
+  ]
+}
+
 Suggest between 3 and 15 fields.
 Focus on the most important and commonly extracted fields for this document type.
 Use snake_case for field_name and descriptive labels for field_label.
 Field names should be in English."""
+
+
+VALID_TYPES = {"text", "number", "date", "currency", "boolean", "table"}
+VALID_COLUMN_TYPES = {"text", "number", "date", "currency", "boolean"}
 
 
 async def suggest_fields(
@@ -62,12 +81,37 @@ Document text:
         if not name:
             continue
 
-        result.append({
+        field_type = f.get("field_type", "text")
+        if field_type not in VALID_TYPES:
+            field_type = "text"
+
+        entry = {
             "field_name": name,
             "field_label": f.get("field_label", name.replace("_", " ").title()),
-            "field_type": f.get("field_type", "text") if f.get("field_type") in ("text", "number", "date", "currency", "boolean") else "text",
+            "field_type": field_type,
             "required": bool(f.get("required", False)),
             "sort_order": i,
-        })
+        }
+
+        # Include columns for table fields
+        if field_type == "table" and isinstance(f.get("columns"), list):
+            columns = []
+            for col in f["columns"]:
+                if isinstance(col, dict) and col.get("name"):
+                    col_type = col.get("type", "text")
+                    if col_type not in VALID_COLUMN_TYPES:
+                        col_type = "text"
+                    columns.append({
+                        "name": col["name"],
+                        "label": col.get("label", col["name"].replace("_", " ").title()),
+                        "type": col_type,
+                    })
+            if columns:
+                entry["columns"] = columns
+            else:
+                # Table without valid columns - skip it
+                continue
+
+        result.append(entry)
 
     return result

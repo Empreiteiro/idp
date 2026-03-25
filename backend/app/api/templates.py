@@ -159,7 +159,15 @@ def add_field(template_id: int, data: FieldCreate, db: Session = Depends(get_db)
     template = db.query(Template).filter(Template.id == template_id).first()
     if not template:
         raise HTTPException(404, "Template not found")
-    field = TemplateField(template_id=template_id, **data.model_dump())
+    field_data = data.model_dump()
+    # Serialize columns for table fields
+    if field_data.get("field_type") == "table":
+        if not field_data.get("columns"):
+            raise HTTPException(400, "Table fields require at least one column definition")
+        field_data["columns"] = json.dumps([c if isinstance(c, dict) else c for c in field_data["columns"]])
+    else:
+        field_data["columns"] = None
+    field = TemplateField(template_id=template_id, **field_data)
     db.add(field)
     db.commit()
     db.refresh(field)
@@ -173,7 +181,14 @@ def update_field(template_id: int, field_id: int, data: FieldUpdate, db: Session
     ).first()
     if not field:
         raise HTTPException(404, "Field not found")
-    for key, value in data.model_dump(exclude_none=True).items():
+    update_data = data.model_dump(exclude_none=True)
+    # Serialize columns for table fields
+    if "columns" in update_data:
+        update_data["columns"] = json.dumps([c if isinstance(c, dict) else c for c in update_data["columns"]])
+    field_type = update_data.get("field_type", field.field_type)
+    if field_type != "table":
+        update_data["columns"] = None
+    for key, value in update_data.items():
         setattr(field, key, value)
     db.commit()
     db.refresh(field)

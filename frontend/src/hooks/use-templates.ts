@@ -93,6 +93,7 @@ export function useAddField() {
       field_label: string;
       field_type: string;
       required: boolean;
+      columns?: { name: string; label: string; type: string }[];
     }) => {
       const { data } = await api.post(
         `/api/templates/${templateId}/fields`,
