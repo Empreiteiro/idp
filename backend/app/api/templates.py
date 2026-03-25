@@ -1,7 +1,10 @@
 import json
+import logging
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+
+logger = logging.getLogger("idp.templates")
 
 from app.database import get_db
 from app.models import Template, TemplateField, Document
@@ -65,8 +68,8 @@ async def create_template(
         try:
             from app.services.pipeline import suggest_fields_for_template
             await suggest_fields_for_template(db, template)
-        except Exception:
-            pass  # Fields suggestion is best-effort
+        except Exception as e:
+            logger.warning("Auto field suggestion failed for template '%s': %s", name, e)
 
     db.refresh(template)
     doc_count = db.query(func.count(Document.id)).filter(Document.template_id == template.id).scalar()

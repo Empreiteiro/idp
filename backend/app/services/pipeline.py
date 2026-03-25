@@ -1,7 +1,10 @@
 """Document processing pipeline orchestrator."""
 
 import json
+import logging
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger("idp.pipeline")
 
 from app.models import Template, TemplateField, Document, ExtractionResult
 from app.services.ocr import extract_text
@@ -17,8 +20,8 @@ def _log(db: Session, action: str, entity_type: str, entity_id=None, entity_name
     try:
         from app.api.activity import log_activity
         log_activity(db, action, entity_type, entity_id, entity_name, details, status)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Activity logging failed: %s", e)
 
 
 async def process_document(db: Session, document_id: int) -> None:
