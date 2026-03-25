@@ -5,5 +5,10 @@ from app.models.settings import AppSettings
 from app.models.activity import ActivityLog
 from app.models.llm_log import LLMLog
 from app.models.user import User
+from app.models.insight import InsightTemplate, InsightTemplateSection, DocumentInsight
 
-__all__ = ["Template", "TemplateField", "Document", "ExtractionResult", "AppSettings", "ActivityLog", "LLMLog", "User"]
+__all__ = [
+    "Template", "TemplateField", "Document", "ExtractionResult",
+    "AppSettings", "ActivityLog", "LLMLog", "User",
+    "InsightTemplate", "InsightTemplateSection", "DocumentInsight",
+]

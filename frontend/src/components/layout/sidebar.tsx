@@ -11,6 +11,8 @@ import {
   FileCheck,
   Table2,
   Activity,
+  Lightbulb,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +22,8 @@ const navItems = [
   { href: "/documents", label: "Documents", icon: FileText },
   { href: "/documents/upload", label: "Upload", icon: Upload },
   { href: "/data", label: "Extracted Data", icon: Table2 },
+  { href: "/insight-templates", label: "Insight Templates", icon: Lightbulb },
+  { href: "/insights", label: "Insights", icon: BarChart3 },
   { href: "/llm-logs", label: "LLM Logs", icon: Activity },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
@@ -40,8 +44,16 @@ export default function Sidebar() {
       </div>
       <nav className="flex-1 space-y-1 p-3">
         {navItems.map((item) => {
+          const hasMoreSpecificMatch = navItems.some(
+            (other) =>
+              other.href !== item.href &&
+              other.href.startsWith(item.href + "/") &&
+              (pathname === other.href ||
+                pathname.startsWith(other.href + "/"))
+          );
           const isActive =
-            pathname === item.href || pathname.startsWith(item.href + "/");
+            !hasMoreSpecificMatch &&
+            (pathname === item.href || pathname.startsWith(item.href + "/"));
           return (
             <Link
               key={item.href}

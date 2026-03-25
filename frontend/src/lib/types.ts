@@ -212,6 +212,96 @@ export interface LLMLogListResponse {
   limit: number;
 }
 
+// Insight Templates types
+export interface InsightTemplateSection {
+  id: number;
+  insight_template_id: number;
+  title: string;
+  description: string | null;
+  prompt_hint: string | null;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface InsightTemplate {
+  id: number;
+  name: string;
+  description: string | null;
+  template_id: number;
+  template_name: string;
+  system_prompt: string | null;
+  is_active: boolean;
+  sections: InsightTemplateSection[];
+  insight_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InsightTemplateListItem {
+  id: number;
+  name: string;
+  description: string | null;
+  template_name: string;
+  section_count: number;
+  insight_count: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+// Document Insights types
+export interface InsightDocumentRef {
+  document_id: number;
+  filename: string;
+  template_name: string | null;
+}
+
+export interface DocumentInsight {
+  id: number;
+  insight_template_id: number | null;
+  insight_template_name: string | null;
+  analysis_mode: string;
+  title: string;
+  content: string | null;
+  summary: string | null;
+  status: string;
+  error_message: string | null;
+  metadata: Record<string, unknown> | null;
+  documents: InsightDocumentRef[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DocumentInsightListItem {
+  id: number;
+  title: string;
+  insight_template_name: string | null;
+  analysis_mode: string;
+  document_count: number;
+  status: string;
+  created_at: string;
+}
+
+export interface InsightListResponse {
+  insights: DocumentInsightListItem[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface InsightGenerateRequest {
+  insight_template_id: number;
+  document_ids: number[];
+  analysis_mode: "individual" | "consolidated";
+  custom_instructions?: string;
+}
+
+export interface InsightGenerateResponse {
+  insights: DocumentInsight[];
+  total_tokens: number;
+  total_cost: number;
+  total_latency_ms: number;
+}
+
 export interface LLMStats {
   total_requests: number;
   total_tokens: number;

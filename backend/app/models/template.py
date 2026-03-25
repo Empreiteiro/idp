@@ -20,6 +20,7 @@ class Template(Base):
         back_populates="template", cascade="all, delete-orphan", order_by="TemplateField.sort_order"
     )
     documents: Mapped[list["Document"]] = relationship(back_populates="template")
+    insight_templates: Mapped[list["InsightTemplate"]] = relationship(back_populates="template", cascade="all, delete-orphan")
 
 
 class TemplateField(Base):
