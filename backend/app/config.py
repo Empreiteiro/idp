@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     # Classification
     classification_threshold: float = 0.6
 
+    # JWT
+    jwt_secret: str = "change-me-in-production-use-strong-secret"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 1440
+
     # Logging
     log_level: str = "INFO"
 
