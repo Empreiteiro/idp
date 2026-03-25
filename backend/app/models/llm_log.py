@@ -14,15 +14,14 @@ class LLMLog(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
     # Request classification
-    request_type: Mapped[str] = mapped_column(String(50), nullable=False)
-    # e.g. "field_suggestion", "extraction", "classification", "connection_test"
+    request_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
 
     # Provider info
-    provider: Mapped[str] = mapped_column(String(30), nullable=False)  # openai, claude, gemini
+    provider: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
     model: Mapped[str] = mapped_column(String(100), nullable=False)
 
     # Linked entity (optional)
-    document_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    document_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     template_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     entity_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
@@ -32,8 +31,7 @@ class LLMLog(Base):
 
     # Response details
     response_text: Mapped[str | None] = mapped_column(Text, nullable=True)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="success")
-    # success, error
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="success", index=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Token usage
@@ -48,4 +46,4 @@ class LLMLog(Base):
     estimated_cost: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)

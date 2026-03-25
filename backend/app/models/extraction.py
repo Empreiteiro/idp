@@ -17,9 +17,9 @@ class ExtractionResult(Base):
         Integer, ForeignKey("templates.id", ondelete="CASCADE"), nullable=False
     )
     extracted_data: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
-    is_reviewed: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_reviewed: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     document: Mapped["Document"] = relationship(back_populates="extraction")
