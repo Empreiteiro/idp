@@ -8,7 +8,7 @@ import {
   FolderOpen,
   Upload,
   Settings,
-  Brain,
+  FileCheck,
   Table2,
   Activity,
 } from "lucide-react";
@@ -30,7 +30,7 @@ export default function Sidebar() {
   return (
     <aside className="flex h-screen w-64 flex-col border-r bg-card">
       <div className="flex h-16 items-center gap-2 border-b px-6">
-        <Brain className="h-7 w-7 text-primary" />
+        <FileCheck className="h-7 w-7 text-primary" />
         <div>
           <h1 className="text-lg font-bold leading-tight">IDP</h1>
           <p className="text-[10px] text-muted-foreground leading-tight">
