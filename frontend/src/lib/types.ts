@@ -150,6 +150,21 @@ export interface SystemInfo {
   libraries: Record<string, boolean>;
 }
 
+export interface DepStatus {
+  name: string;
+  required: boolean;
+  installed: boolean;
+  version: string;
+  detail: string;
+}
+
+export interface DepsValidationResult {
+  ok: boolean;
+  python_packages: DepStatus[];
+  system_tools: DepStatus[];
+  summary: string;
+}
+
 export interface ConnectionTestResult {
   status: "ok" | "error";
   message: string;

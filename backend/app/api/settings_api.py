@@ -49,6 +49,16 @@ def test_ocr_connection(db: Session = Depends(get_db)):
         return {"status": "error", "message": f"Tesseract not found: {str(e)}"}
 
 
+@router.get("/validate-deps")
+def validate_deps():
+    """Validate that all required packages for document extraction are installed."""
+    from app.services.deps_validator import validate_dependencies
+    from dataclasses import asdict
+
+    result = validate_dependencies()
+    return asdict(result)
+
+
 @router.get("/system-info")
 def get_system_info(db: Session = Depends(get_db)):
     """Get system information about available tools."""
