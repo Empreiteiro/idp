@@ -9,6 +9,7 @@ from app.services.ai_extractor import extract_fields
 from app.services.classifier import classify_document
 from app.services.field_suggester import suggest_fields
 from app.core.file_utils import get_file_full_path
+from app.utils.constants import CLASSIFICATION_CONFIDENCE_THRESHOLD
 
 
 def _log(db: Session, action: str, entity_type: str, entity_id=None, entity_name=None, details=None, status="success"):
@@ -77,7 +78,7 @@ async def process_document(db: Session, document_id: int) -> None:
                 )
                 doc.classification_confidence = result.get("confidence", 0.0)
 
-                if result.get("template_id") and result.get("confidence", 0) >= 0.6:
+                if result.get("template_id") and result.get("confidence", 0) >= CLASSIFICATION_CONFIDENCE_THRESHOLD:
                     doc.template_id = result["template_id"]
                 else:
                     doc.status = "review"

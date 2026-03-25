@@ -2,7 +2,6 @@
 
 import csv
 import io
-import json
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
@@ -10,6 +9,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Template, TemplateField, Document, ExtractionResult
+from app.utils.constants import DEFAULT_DATA_TABLE_PAGE_SIZE
+from app.utils.json_utils import parse_extracted_data
 
 router = APIRouter(prefix="/api/data", tags=["data-tables"])
 
@@ -18,7 +19,7 @@ router = APIRouter(prefix="/api/data", tags=["data-tables"])
 def get_template_data_table(
     template_id: int,
     page: int = Query(1, ge=1),
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(DEFAULT_DATA_TABLE_PAGE_SIZE, ge=1, le=200),
     reviewed_only: bool = False,
     search: str | None = None,
     db: Session = Depends(get_db),
@@ -58,7 +59,7 @@ def get_template_data_table(
 
     rows = []
     for ext, doc in results:
-        data = json.loads(ext.extracted_data) if isinstance(ext.extracted_data, str) else ext.extracted_data
+        data = parse_extracted_data(ext.extracted_data)
 
         row = {
             "_doc_id": doc.id,
@@ -148,7 +149,7 @@ def export_template_data_csv(
 
     # Data rows
     for ext, doc in results:
-        data = json.loads(ext.extracted_data) if isinstance(ext.extracted_data, str) else ext.extracted_data
+        data = parse_extracted_data(ext.extracted_data)
 
         row = [doc.id, doc.filename, doc.status, "Yes" if ext.is_reviewed else "No", doc.created_at.isoformat()]
 
