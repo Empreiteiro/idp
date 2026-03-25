@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -9,6 +9,7 @@ from app.schemas.document import DocumentResponse, DocumentDetailResponse, Docum
 from app.utils.json_utils import parse_extracted_data
 from app.core.file_utils import save_upload_file, validate_file_type, delete_file, get_file_full_path, get_file_extension
 from app.schemas.responses import SuccessResponse
+from app.core.rate_limit import limiter
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
@@ -58,7 +59,9 @@ def list_documents(
 
 
 @router.post("/upload", response_model=DocumentResponse, status_code=201)
+@limiter.limit("10/hour")
 async def upload_document(
+    request: Request,
     file: UploadFile = File(...),
     template_id: int | None = Form(None),
     db: Session = Depends(get_db),
@@ -186,7 +189,9 @@ async def assign_template(
 
 
 @router.post("/upload-batch", status_code=201)
+@limiter.limit("10/hour")
 async def upload_batch(
+    request: Request,
     files: list[UploadFile] = File(...),
     template_id: int | None = Form(None),
     db: Session = Depends(get_db),

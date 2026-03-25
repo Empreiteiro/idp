@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.settings import AppSettings
 from app.schemas.responses import SuccessResponse
+from app.core.rate_limit import limiter
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
@@ -12,7 +13,8 @@ ALLOWED_KEYS = {"ai_provider", "ai_api_key", "ai_model", "tesseract_path", "popp
 
 
 @router.post("/test-ai")
-async def test_ai_connection(db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def test_ai_connection(request: Request, db: Session = Depends(get_db)):
     """Test the AI provider connection with a simple request."""
     try:
         from app.services.ai_provider import get_provider, save_trace
@@ -30,7 +32,8 @@ async def test_ai_connection(db: Session = Depends(get_db)):
 
 
 @router.post("/test-ocr")
-def test_ocr_connection(db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def test_ocr_connection(request: Request, db: Session = Depends(get_db)):
     """Test if Tesseract OCR is accessible."""
     try:
         import pytesseract
