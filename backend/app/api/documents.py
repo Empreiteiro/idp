@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form, Query
+import asyncio
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, UploadFile, File, Form, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -12,6 +13,18 @@ from app.schemas.responses import SuccessResponse
 from app.core.rate_limit import limiter
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
+
+
+def _run_process(doc_id: int):
+    from app.database import SessionLocal
+    from app.services.pipeline import process_document
+    db_bg = SessionLocal()
+    try:
+        asyncio.run(process_document(db_bg, doc_id))
+    except Exception:
+        pass
+    finally:
+        db_bg.close()
 
 
 def _doc_to_response(doc: Document) -> DocumentResponse:
@@ -62,6 +75,7 @@ def list_documents(
 @limiter.limit("10/hour")
 async def upload_document(
     request: Request,
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     template_id: int | None = Form(None),
     db: Session = Depends(get_db),
@@ -94,16 +108,7 @@ async def upload_document(
     db.commit()
     db.refresh(doc)
 
-    # Start processing in background-like fashion (sync for now)
-    try:
-        from app.services.pipeline import process_document
-        await process_document(db, doc.id)
-        db.refresh(doc)
-    except Exception as e:
-        doc.status = "failed"
-        doc.error_message = str(e)
-        db.commit()
-        db.refresh(doc)
+    background_tasks.add_task(_run_process, doc.id)
 
     return _doc_to_response(doc)
 
@@ -192,6 +197,7 @@ async def assign_template(
 @limiter.limit("10/hour")
 async def upload_batch(
     request: Request,
+    background_tasks: BackgroundTasks,
     files: list[UploadFile] = File(...),
     template_id: int | None = Form(None),
     db: Session = Depends(get_db),
@@ -221,15 +227,7 @@ async def upload_batch(
             db.commit()
             db.refresh(doc)
 
-            try:
-                from app.services.pipeline import process_document
-                await process_document(db, doc.id)
-                db.refresh(doc)
-            except Exception as e:
-                doc.status = "failed"
-                doc.error_message = str(e)
-                db.commit()
-                db.refresh(doc)
+            background_tasks.add_task(_run_process, doc.id)
 
             results.append({
                 "id": doc.id,
