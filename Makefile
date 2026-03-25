@@ -31,9 +31,7 @@ UNAME_S := $(shell uname -s 2>/dev/null || echo Windows)
 ifeq ($(OS),Windows_NT)
   DETECTED_OS := Windows
   OPEN_CMD := start
-  # Windows .venv uses Scripts/ not bin/
   RMRF := rmdir /s /q
-  FIND_CLEAN := if exist backend\__pycache__ rmdir /s /q backend\__pycache__
 else ifeq ($(UNAME_S),Darwin)
   DETECTED_OS := macOS
   OPEN_CMD := open
@@ -44,15 +42,12 @@ else
   RMRF := rm -rf
 endif
 
-# ── Sentinel files (for auto-install) ──────────────────
-BACKEND_INSTALLED  := backend/.installed
-FRONTEND_INSTALLED := frontend/node_modules/.package-lock.json
-
 # ── Phony targets ───────────────────────────────────────
 .PHONY: help check-deps install install-backend install-frontend \
         venv dev dev-backend dev-frontend \
         start start-backend start-frontend build \
-        lint test clean migrate migrate-new setup env
+        lint test clean migrate migrate-new setup env \
+        _ensure-backend _ensure-frontend
 
 # ── Default ──────────────────────────────────────────────
 
@@ -121,6 +116,26 @@ check-node:
 check-deps: check-pip check-node ## Verify all required tools are installed
 	@echo "All dependencies found."
 
+# ── Runtime dependency checks ────────────────────────────
+# These check if packages are actually importable/present,
+# not just if a sentinel file exists (handles switching Python, etc.)
+
+_ensure-backend: check-pip
+	@$(PYTHON) -c "import uvicorn" 2>/dev/null || { \
+		echo ""; \
+		echo "  Backend dependencies missing. Installing..."; \
+		echo ""; \
+		cd backend && $(PIP) install -r requirements.txt; \
+	}
+
+_ensure-frontend: check-node
+	@if [ ! -d "frontend/node_modules" ]; then \
+		echo ""; \
+		echo "  Frontend dependencies missing. Installing..."; \
+		echo ""; \
+		cd frontend && $(NPM) install; \
+	fi
+
 # ── Setup ────────────────────────────────────────────────
 
 venv: ## Create Python virtual environment (.venv)
@@ -158,67 +173,55 @@ install: install-backend install-frontend ## Install all dependencies
 
 install-backend: check-pip ## Install backend dependencies
 	cd backend && $(PIP) install -r requirements.txt
-	@touch $(BACKEND_INSTALLED)
 
 install-frontend: check-node ## Install frontend dependencies
 	cd frontend && $(NPM) install
 
-# Auto-install backend deps if sentinel is missing
-$(BACKEND_INSTALLED): backend/requirements.txt
-	@echo "Backend dependencies not installed. Running install..."
-	cd backend && $(PIP) install -r requirements.txt
-	@touch $(BACKEND_INSTALLED)
-
-# Auto-install frontend deps if node_modules is missing
-$(FRONTEND_INSTALLED): frontend/package.json
-	@echo "Frontend dependencies not installed. Running install..."
-	cd frontend && $(NPM) install
-
 # ── Dev mode (with hot-reload) ───────────────────────────
 
-dev: check-python check-node $(BACKEND_INSTALLED) $(FRONTEND_INSTALLED) ## Start backend and frontend in dev mode (parallel)
+dev: _ensure-backend _ensure-frontend ## Start backend and frontend in dev mode (parallel)
 	@$(MAKE) -j2 dev-backend dev-frontend
 
-dev-backend: check-python $(BACKEND_INSTALLED) ## Start backend in dev mode (uvicorn --reload)
+dev-backend: _ensure-backend ## Start backend in dev mode (uvicorn --reload)
 	cd backend && $(PYTHON) run.py
 
-dev-frontend: check-node $(FRONTEND_INSTALLED) ## Start frontend in dev mode (next dev)
+dev-frontend: _ensure-frontend ## Start frontend in dev mode (next dev)
 ifeq ($(NPM_NAME),yarn)
 	cd frontend && yarn dev
 else ifeq ($(NPM_NAME),pnpm)
 	cd frontend && pnpm dev
 else
-	cd frontend && npx --yes next dev
+	cd frontend && npm run dev
 endif
 
 # ── Production ───────────────────────────────────────────
 
 start: start-backend start-frontend ## Start backend and frontend in production mode
 
-start-backend: check-python $(BACKEND_INSTALLED) ## Start backend in production mode
+start-backend: _ensure-backend ## Start backend in production mode
 	cd backend && $(PYTHON) -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 
-start-frontend: check-node $(FRONTEND_INSTALLED) ## Start frontend in production mode
+start-frontend: _ensure-frontend ## Start frontend in production mode
 ifeq ($(NPM_NAME),yarn)
 	cd frontend && yarn start
 else ifeq ($(NPM_NAME),pnpm)
 	cd frontend && pnpm start
 else
-	cd frontend && npx --yes next start
+	cd frontend && npm run start
 endif
 
-build: check-node $(FRONTEND_INSTALLED) ## Build frontend for production
+build: _ensure-frontend ## Build frontend for production
 ifeq ($(NPM_NAME),yarn)
 	cd frontend && yarn build
 else ifeq ($(NPM_NAME),pnpm)
 	cd frontend && pnpm build
 else
-	cd frontend && npx --yes next build
+	cd frontend && npm run build
 endif
 
 # ── Quality ──────────────────────────────────────────────
 
-lint: check-node $(FRONTEND_INSTALLED) ## Run frontend linter
+lint: _ensure-frontend ## Run frontend linter
 ifeq ($(NPM_NAME),yarn)
 	cd frontend && yarn lint
 else ifeq ($(NPM_NAME),pnpm)
@@ -227,15 +230,15 @@ else
 	cd frontend && npm run lint
 endif
 
-test: check-python $(BACKEND_INSTALLED) ## Run backend tests
+test: _ensure-backend ## Run backend tests
 	cd backend && $(PYTHON) -m pytest
 
 # ── Database ─────────────────────────────────────────────
 
-migrate: check-python $(BACKEND_INSTALLED) ## Run database migrations
+migrate: _ensure-backend ## Run database migrations
 	cd backend && $(PYTHON) -m alembic upgrade head
 
-migrate-new: check-python $(BACKEND_INSTALLED) ## Create a new migration (usage: make migrate-new MSG="description")
+migrate-new: _ensure-backend ## Create a new migration (usage: make migrate-new MSG="description")
 	@if [ -z "$(MSG)" ]; then \
 		echo "Error: MSG is required. Usage: make migrate-new MSG=\"your description\""; \
 		exit 1; \
@@ -248,5 +251,4 @@ clean: ## Remove build artifacts and caches
 	$(RMRF) frontend/.next frontend/node_modules/.cache 2>/dev/null || true
 	find backend -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	find backend -type d -name .pytest_cache -exec rm -rf {} + 2>/dev/null || true
-	rm -f $(BACKEND_INSTALLED)
 	@echo "Cleaned build artifacts and caches."
