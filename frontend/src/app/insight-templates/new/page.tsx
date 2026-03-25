@@ -113,7 +113,7 @@ export default function NewInsightTemplatePage() {
             <label className="text-sm font-medium">
               Linked Document Template *
             </label>
-            <Select value={templateId} onValueChange={setTemplateId}>
+            <Select value={templateId} onValueChange={(val) => setTemplateId(val ?? "")}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a document template" />
               </SelectTrigger>

@@ -5,7 +5,6 @@ import { useInsight, useRegenerateInsight, useDeleteInsight } from "@/hooks/use-
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -78,7 +77,7 @@ export default function InsightDetailPage() {
     return <p>Insight not found</p>;
   }
 
-  const meta = insight.metadata || {};
+  const meta = (insight.metadata || {}) as Record<string, string | number | null>;
 
   return (
     <div className="space-y-6">

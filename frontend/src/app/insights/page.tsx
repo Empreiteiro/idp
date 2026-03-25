@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { useInsights, useDeleteInsight, useGenerateInsight } from "@/hooks/use-insights";
 import { useInsightTemplates } from "@/hooks/use-insight-templates";
-import { useDocuments } from "@/hooks/use-documents";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,7 +34,6 @@ import {
 } from "@/components/ui/dialog";
 import {
   BarChart3,
-  Plus,
   Trash2,
   ExternalLink,
   Loader2,
@@ -66,16 +64,6 @@ export default function InsightsPage() {
   const generateMutation = useGenerateInsight();
 
   const { data: insightTemplates } = useInsightTemplates();
-  const selectedInsightTemplate = insightTemplates?.find(
-    (t) => t.id === Number(selectedTemplateId)
-  );
-
-  // Load documents for the linked template
-  const { data: docsData } = useDocuments(
-    selectedInsightTemplate
-      ? { status: "completed", template_id: undefined, page: 1, limit: 100 }
-      : undefined
-  );
 
   const handleDelete = (e: React.MouseEvent, id: number, title: string) => {
     e.preventDefault();
@@ -141,12 +129,14 @@ export default function InsightsPage() {
           </p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Sparkles className="mr-2 h-4 w-4" />
-              Generate Insight
-            </Button>
-          </DialogTrigger>
+          <DialogTrigger
+            render={
+              <Button>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Generate Insight
+              </Button>
+            }
+          />
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Generate Document Insight</DialogTitle>
@@ -159,7 +149,7 @@ export default function InsightsPage() {
                 <label className="text-sm font-medium">Insight Template *</label>
                 <Select
                   value={selectedTemplateId}
-                  onValueChange={setSelectedTemplateId}
+                  onValueChange={(val) => setSelectedTemplateId(val ?? "")}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select insight template" />
@@ -190,7 +180,7 @@ export default function InsightsPage() {
 
               <div className="space-y-1">
                 <label className="text-sm font-medium">Analysis Mode *</label>
-                <Select value={analysisMode} onValueChange={setAnalysisMode}>
+                <Select value={analysisMode} onValueChange={(val) => setAnalysisMode(val ?? "individual")}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
