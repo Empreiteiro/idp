@@ -4,12 +4,15 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 import logging
 
 from app.config import settings
 from app.database import init_db
 from app.middleware.logging import RequestLoggingMiddleware
+from app.core.rate_limit import limiter
 
 # Configure root logger
 logging.basicConfig(
@@ -45,6 +48,9 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 cors_origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
 

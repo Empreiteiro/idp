@@ -219,6 +219,10 @@ def get_ai_settings(db: Session) -> tuple[str, str, str]:
     api_key = rows.get("ai_api_key") or env_settings.ai_api_key
     model = rows.get("ai_model") or env_settings.ai_model
 
+    if api_key:
+        from app.utils.encryption import decrypt_value
+        api_key = decrypt_value(api_key)
+
     return provider, api_key, model
 
 

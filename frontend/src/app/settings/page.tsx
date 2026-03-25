@@ -42,6 +42,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { validateApiKey } from "@/lib/schemas";
 
 const providerModels: Record<string, string[]> = {
   openai: ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1"],
@@ -67,6 +68,7 @@ export default function SettingsPage() {
   const [tesseractPath, setTesseractPath] = useState("");
   const [popperPath, setPopperPath] = useState("");
   const [showKey, setShowKey] = useState(false);
+  const [apiKeyError, setApiKeyError] = useState("");
 
   useEffect(() => {
     if (data?.settings) {
@@ -272,7 +274,10 @@ export default function SettingsPage() {
                   type={showKey ? "text" : "password"}
                   placeholder="Enter your API key"
                   value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
+                  onChange={(e) => {
+                    setApiKey(e.target.value);
+                    setApiKeyError(validateApiKey(e.target.value) || "");
+                  }}
                 />
                 <Button
                   variant="ghost"
@@ -280,6 +285,7 @@ export default function SettingsPage() {
                   className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
                   onClick={() => setShowKey(!showKey)}
                   type="button"
+                  aria-label={showKey ? "Hide API key" : "Show API key"}
                 >
                   {showKey ? (
                     <EyeOff className="h-3.5 w-3.5" />
@@ -289,6 +295,7 @@ export default function SettingsPage() {
                 </Button>
               </div>
             </div>
+            {apiKeyError && <p className="text-xs text-red-500">{apiKeyError}</p>}
           </div>
 
           <div className="space-y-2">
