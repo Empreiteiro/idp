@@ -16,16 +16,25 @@ router = APIRouter(prefix="/api/templates", tags=["templates"])
 
 @router.get("", response_model=list[TemplateListResponse])
 def list_templates(db: Session = Depends(get_db)):
-    templates = db.query(Template).order_by(Template.created_at.desc()).all()
-    result = []
-    for t in templates:
-        doc_count = db.query(func.count(Document.id)).filter(Document.template_id == t.id).scalar()
-        result.append(TemplateListResponse(
+    doc_counts_subq = (
+        db.query(Document.template_id, func.count(Document.id).label("doc_count"))
+        .group_by(Document.template_id)
+        .subquery()
+    )
+    rows = (
+        db.query(Template, func.coalesce(doc_counts_subq.c.doc_count, 0).label("doc_count"))
+        .outerjoin(doc_counts_subq, Template.id == doc_counts_subq.c.template_id)
+        .order_by(Template.created_at.desc())
+        .all()
+    )
+    return [
+        TemplateListResponse(
             id=t.id, name=t.name, description=t.description,
             created_at=t.created_at,
-            field_count=len(t.fields), document_count=doc_count or 0,
-        ))
-    return result
+            field_count=len(t.fields), document_count=doc_count,
+        )
+        for t, doc_count in rows
+    ]
 
 
 @router.post("", response_model=TemplateResponse, status_code=201)
