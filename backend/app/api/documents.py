@@ -8,6 +8,7 @@ from app.models import Document, Template, ExtractionResult
 from app.schemas.document import DocumentResponse, DocumentDetailResponse, DocumentListResponse, ExtractionResponse
 from app.utils.json_utils import parse_extracted_data
 from app.core.file_utils import save_upload_file, validate_file_type, delete_file, get_file_full_path, get_file_extension
+from app.schemas.responses import SuccessResponse
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
@@ -118,7 +119,7 @@ def get_document(doc_id: int, db: Session = Depends(get_db)):
     return DocumentDetailResponse(**resp.model_dump(), extraction=extraction)
 
 
-@router.delete("/{doc_id}")
+@router.delete("/{doc_id}", response_model=SuccessResponse)
 def delete_document(doc_id: int, db: Session = Depends(get_db)):
     doc = db.query(Document).filter(Document.id == doc_id).first()
     if not doc:
@@ -126,7 +127,7 @@ def delete_document(doc_id: int, db: Session = Depends(get_db)):
     delete_file(doc.file_path)
     db.delete(doc)
     db.commit()
-    return {"ok": True}
+    return SuccessResponse(message=f"Document '{doc.filename}' deleted")
 
 
 @router.get("/{doc_id}/file")

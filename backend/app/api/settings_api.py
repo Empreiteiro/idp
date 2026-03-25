@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.settings import AppSettings
+from app.schemas.responses import SuccessResponse
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
@@ -148,10 +149,10 @@ def get_settings(db: Session = Depends(get_db)):
     return SettingsResponse(settings=_get_all_settings(db))
 
 
-@router.put("")
+@router.put("", response_model=SuccessResponse)
 def update_setting(data: SettingUpdate, db: Session = Depends(get_db)):
     if data.key not in ALLOWED_KEYS:
-        return {"error": f"Unknown setting: {data.key}"}
+        raise HTTPException(400, f"Unknown setting: {data.key}")
 
     setting = db.query(AppSettings).filter(AppSettings.key == data.key).first()
     if setting:
@@ -160,11 +161,12 @@ def update_setting(data: SettingUpdate, db: Session = Depends(get_db)):
         setting = AppSettings(key=data.key, value=data.value)
         db.add(setting)
     db.commit()
-    return {"ok": True}
+    return SuccessResponse(message=f"Setting '{data.key}' updated")
 
 
-@router.put("/bulk")
+@router.put("/bulk", response_model=SuccessResponse)
 def update_settings_bulk(settings: dict[str, str], db: Session = Depends(get_db)):
+    updated = []
     for key, value in settings.items():
         if key not in ALLOWED_KEYS:
             continue
@@ -174,5 +176,6 @@ def update_settings_bulk(settings: dict[str, str], db: Session = Depends(get_db)
         else:
             setting = AppSettings(key=key, value=value)
             db.add(setting)
+        updated.append(key)
     db.commit()
-    return {"ok": True}
+    return SuccessResponse(message=f"Updated {len(updated)} setting(s)")

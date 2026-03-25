@@ -10,6 +10,7 @@ from app.schemas.template import (
     FieldCreate, FieldUpdate, FieldResponse,
 )
 from app.core.file_utils import save_upload_file, validate_file_type, delete_file
+from app.schemas.responses import SuccessResponse
 
 router = APIRouter(prefix="/api/templates", tags=["templates"])
 
@@ -111,7 +112,7 @@ def update_template(template_id: int, data: TemplateUpdate, db: Session = Depend
     )
 
 
-@router.delete("/{template_id}")
+@router.delete("/{template_id}", response_model=SuccessResponse)
 def delete_template(template_id: int, db: Session = Depends(get_db)):
     template = db.query(Template).filter(Template.id == template_id).first()
     if not template:
@@ -120,7 +121,7 @@ def delete_template(template_id: int, db: Session = Depends(get_db)):
         delete_file(template.example_file)
     db.delete(template)
     db.commit()
-    return {"ok": True}
+    return SuccessResponse(message=f"Template '{template.name}' deleted")
 
 
 @router.post("/{template_id}/suggest-fields", response_model=list[FieldResponse])
@@ -176,7 +177,7 @@ def update_field(template_id: int, field_id: int, data: FieldUpdate, db: Session
     return FieldResponse.model_validate(field)
 
 
-@router.delete("/{template_id}/fields/{field_id}")
+@router.delete("/{template_id}/fields/{field_id}", response_model=SuccessResponse)
 def delete_field(template_id: int, field_id: int, db: Session = Depends(get_db)):
     field = db.query(TemplateField).filter(
         TemplateField.id == field_id, TemplateField.template_id == template_id
@@ -185,4 +186,4 @@ def delete_field(template_id: int, field_id: int, db: Session = Depends(get_db))
         raise HTTPException(404, "Field not found")
     db.delete(field)
     db.commit()
-    return {"ok": True}
+    return SuccessResponse(message="Field deleted")
