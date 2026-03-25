@@ -13,3 +13,4 @@ python-multipart>=0.0.12
 pydantic-settings>=2.6.0
 python-dotenv>=1.0.0
 aiofiles>=24.1.0
+alembic>=1.13.0
