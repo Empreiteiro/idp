@@ -5,44 +5,49 @@
 
 SHELL := /bin/bash
 
-# Detect virtualenv — prefer .venv in project root
-VENV_DIR   := $(wildcard .venv)
+# ── Python detection ────────────────────────────────────
+# Priority: .venv > system python3 > system python
+VENV_DIR := $(wildcard .venv)
 ifdef VENV_DIR
-  PYTHON := .venv/bin/python
-  PIP    := .venv/bin/pip
+  ifeq ($(OS),Windows_NT)
+    PYTHON := .venv/Scripts/python
+    PIP    := .venv/Scripts/pip
+  else
+    PYTHON := .venv/bin/python
+    PIP    := .venv/bin/pip
+  endif
 else
   PYTHON := $(shell command -v python3 2>/dev/null || command -v python 2>/dev/null)
   PIP    := $(shell command -v pip3 2>/dev/null || command -v pip 2>/dev/null)
 endif
 
-# Detect Node package manager — npm > yarn > pnpm
+# ── Node detection ──────────────────────────────────────
+# Priority: npm > yarn > pnpm
 NPM := $(shell command -v npm 2>/dev/null || command -v yarn 2>/dev/null || command -v pnpm 2>/dev/null)
 NPM_NAME := $(notdir $(NPM))
 
-# Detect npx or equivalent runner
-NPX := $(shell command -v npx 2>/dev/null)
-ifndef NPX
-  # Fallback: call next from node_modules directly
-  NPX := ./node_modules/.bin
-endif
-
-# OS detection
+# ── OS detection ────────────────────────────────────────
 UNAME_S := $(shell uname -s 2>/dev/null || echo Windows)
-ifeq ($(UNAME_S),Darwin)
+ifeq ($(OS),Windows_NT)
+  DETECTED_OS := Windows
+  OPEN_CMD := start
+  RMRF := rmdir /s /q
+else ifeq ($(UNAME_S),Darwin)
+  DETECTED_OS := macOS
   OPEN_CMD := open
-else ifeq ($(findstring MINGW,$(UNAME_S)),MINGW)
-  OPEN_CMD := start
-else ifeq ($(findstring MSYS,$(UNAME_S)),MSYS)
-  OPEN_CMD := start
+  RMRF := rm -rf
 else
+  DETECTED_OS := Linux
   OPEN_CMD := xdg-open
+  RMRF := rm -rf
 endif
 
 # ── Phony targets ───────────────────────────────────────
 .PHONY: help check-deps install install-backend install-frontend \
         venv dev dev-backend dev-frontend \
         start start-backend start-frontend build \
-        lint test clean migrate migrate-new setup env
+        lint test clean migrate migrate-new setup env \
+        _ensure-backend _ensure-frontend
 
 # ── Default ──────────────────────────────────────────────
 
@@ -54,10 +59,11 @@ help: ## Show available commands
 	@echo "  ────────────────────────"
 	@echo ""
 	@echo "  Detected toolchain:"
-	@echo "    Python : $(or $(PYTHON),NOT FOUND)"
-	@echo "    Pip    : $(or $(PIP),NOT FOUND)"
+	@echo "    Python  : $(or $(PYTHON),NOT FOUND)"
+	@echo "    Pip     : $(or $(PIP),NOT FOUND)"
 	@echo "    Node PM : $(or $(NPM_NAME),NOT FOUND)"
-	@echo "    OS     : $(UNAME_S)"
+	@echo "    OS      : $(DETECTED_OS)"
+	@echo "    Venv    : $(if $(VENV_DIR),active (.venv),not found)"
 	@echo ""
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -67,24 +73,68 @@ help: ## Show available commands
 
 check-python:
 	@if [ -z "$(PYTHON)" ]; then \
-		echo "Error: Python not found. Install Python 3.10+ from https://www.python.org/downloads/"; \
+		echo ""; \
+		echo "  Error: Python not found."; \
+		echo ""; \
+		echo "  Install Python 3.10+:"; \
+		echo "    macOS   : brew install python3"; \
+		echo "    Ubuntu  : sudo apt install python3 python3-venv python3-pip"; \
+		echo "    Fedora  : sudo dnf install python3 python3-pip"; \
+		echo "    Windows : https://www.python.org/downloads/"; \
+		echo ""; \
 		exit 1; \
 	fi
 
 check-pip: check-python
 	@if [ -z "$(PIP)" ]; then \
-		echo "Error: pip not found. Run: $(PYTHON) -m ensurepip --upgrade"; \
+		echo ""; \
+		echo "  Error: pip not found."; \
+		echo ""; \
+		echo "  Install pip:"; \
+		echo "    Option 1 : $(PYTHON) -m ensurepip --upgrade"; \
+		echo "    Option 2 : sudo apt install python3-pip  (Ubuntu/Debian)"; \
+		echo "    Option 3 : brew install python3  (macOS, includes pip)"; \
+		echo ""; \
 		exit 1; \
 	fi
 
 check-node:
 	@if [ -z "$(NPM)" ]; then \
-		echo "Error: No Node package manager found. Install Node.js 18+ from https://nodejs.org/"; \
+		echo ""; \
+		echo "  Error: No Node.js package manager found."; \
+		echo ""; \
+		echo "  Install Node.js 18+:"; \
+		echo "    macOS   : brew install node"; \
+		echo "    Ubuntu  : sudo apt install nodejs npm"; \
+		echo "    Fedora  : sudo dnf install nodejs npm"; \
+		echo "    Windows : https://nodejs.org/"; \
+		echo "    Any     : https://github.com/nvm-sh/nvm (recommended)"; \
+		echo ""; \
 		exit 1; \
 	fi
 
 check-deps: check-pip check-node ## Verify all required tools are installed
 	@echo "All dependencies found."
+
+# ── Runtime dependency checks ────────────────────────────
+# These check if packages are actually importable/present,
+# not just if a sentinel file exists (handles switching Python, etc.)
+
+_ensure-backend: check-pip
+	@$(PYTHON) -c "import uvicorn" 2>/dev/null || { \
+		echo ""; \
+		echo "  Backend dependencies missing. Installing..."; \
+		echo ""; \
+		cd backend && $(PIP) install -r requirements.txt; \
+	}
+
+_ensure-frontend: check-node
+	@if [ ! -d "frontend/node_modules" ]; then \
+		echo ""; \
+		echo "  Frontend dependencies missing. Installing..."; \
+		echo ""; \
+		cd frontend && $(NPM) install; \
+	fi
 
 # ── Setup ────────────────────────────────────────────────
 
@@ -94,9 +144,12 @@ venv: ## Create Python virtual environment (.venv)
 	else \
 		echo "Creating virtual environment..."; \
 		$(shell command -v python3 2>/dev/null || command -v python 2>/dev/null) -m venv .venv; \
+		echo ""; \
 		echo "Done. Activate with:"; \
 		echo "  Linux/macOS : source .venv/bin/activate"; \
-		echo "  Windows     : .venv\\Scripts\\activate"; \
+		echo "  Windows CMD : .venv\\Scripts\\activate.bat"; \
+		echo "  PowerShell  : .venv\\Scripts\\Activate.ps1"; \
+		echo ""; \
 		echo "Then run: make install"; \
 	fi
 
@@ -126,49 +179,49 @@ install-frontend: check-node ## Install frontend dependencies
 
 # ── Dev mode (with hot-reload) ───────────────────────────
 
-dev: check-python check-node ## Start backend and frontend in dev mode (parallel)
+dev: _ensure-backend _ensure-frontend ## Start backend and frontend in dev mode (parallel)
 	@$(MAKE) -j2 dev-backend dev-frontend
 
-dev-backend: check-python ## Start backend in dev mode (uvicorn --reload)
+dev-backend: _ensure-backend ## Start backend in dev mode (uvicorn --reload)
 	cd backend && $(PYTHON) run.py
 
-dev-frontend: check-node ## Start frontend in dev mode (next dev)
+dev-frontend: _ensure-frontend ## Start frontend in dev mode (next dev)
 ifeq ($(NPM_NAME),yarn)
 	cd frontend && yarn dev
 else ifeq ($(NPM_NAME),pnpm)
 	cd frontend && pnpm dev
 else
-	cd frontend && npx --yes next dev
+	cd frontend && npm run dev
 endif
 
 # ── Production ───────────────────────────────────────────
 
 start: start-backend start-frontend ## Start backend and frontend in production mode
 
-start-backend: check-python ## Start backend in production mode
+start-backend: _ensure-backend ## Start backend in production mode
 	cd backend && $(PYTHON) -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 
-start-frontend: check-node ## Start frontend in production mode
+start-frontend: _ensure-frontend ## Start frontend in production mode
 ifeq ($(NPM_NAME),yarn)
 	cd frontend && yarn start
 else ifeq ($(NPM_NAME),pnpm)
 	cd frontend && pnpm start
 else
-	cd frontend && npx --yes next start
+	cd frontend && npm run start
 endif
 
-build: check-node ## Build frontend for production
+build: _ensure-frontend ## Build frontend for production
 ifeq ($(NPM_NAME),yarn)
 	cd frontend && yarn build
 else ifeq ($(NPM_NAME),pnpm)
 	cd frontend && pnpm build
 else
-	cd frontend && npx --yes next build
+	cd frontend && npm run build
 endif
 
 # ── Quality ──────────────────────────────────────────────
 
-lint: check-node ## Run frontend linter
+lint: _ensure-frontend ## Run frontend linter
 ifeq ($(NPM_NAME),yarn)
 	cd frontend && yarn lint
 else ifeq ($(NPM_NAME),pnpm)
@@ -177,15 +230,15 @@ else
 	cd frontend && npm run lint
 endif
 
-test: check-python ## Run backend tests
+test: _ensure-backend ## Run backend tests
 	cd backend && $(PYTHON) -m pytest
 
 # ── Database ─────────────────────────────────────────────
 
-migrate: check-python ## Run database migrations
+migrate: _ensure-backend ## Run database migrations
 	cd backend && $(PYTHON) -m alembic upgrade head
 
-migrate-new: check-python ## Create a new migration (usage: make migrate-new MSG="description")
+migrate-new: _ensure-backend ## Create a new migration (usage: make migrate-new MSG="description")
 	@if [ -z "$(MSG)" ]; then \
 		echo "Error: MSG is required. Usage: make migrate-new MSG=\"your description\""; \
 		exit 1; \
@@ -195,7 +248,7 @@ migrate-new: check-python ## Create a new migration (usage: make migrate-new MSG
 # ── Cleanup ──────────────────────────────────────────────
 
 clean: ## Remove build artifacts and caches
-	rm -rf frontend/.next frontend/node_modules/.cache
+	$(RMRF) frontend/.next frontend/node_modules/.cache 2>/dev/null || true
 	find backend -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	find backend -type d -name .pytest_cache -exec rm -rf {} + 2>/dev/null || true
 	@echo "Cleaned build artifacts and caches."
