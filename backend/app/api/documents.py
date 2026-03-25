@@ -1,4 +1,3 @@
-import json
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
@@ -7,6 +6,7 @@ from sqlalchemy import func
 from app.database import get_db
 from app.models import Document, Template, ExtractionResult
 from app.schemas.document import DocumentResponse, DocumentDetailResponse, DocumentListResponse, ExtractionResponse
+from app.utils.json_utils import parse_extracted_data
 from app.core.file_utils import save_upload_file, validate_file_type, delete_file, get_file_full_path, get_file_extension
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
@@ -25,7 +25,7 @@ def _doc_to_response(doc: Document) -> DocumentResponse:
 
 
 def _extraction_to_response(ext: ExtractionResult) -> ExtractionResponse:
-    data = json.loads(ext.extracted_data) if isinstance(ext.extracted_data, str) else ext.extracted_data
+    data = parse_extracted_data(ext.extracted_data)
     return ExtractionResponse(
         id=ext.id, document_id=ext.document_id, template_id=ext.template_id,
         extracted_data=data, is_reviewed=ext.is_reviewed,

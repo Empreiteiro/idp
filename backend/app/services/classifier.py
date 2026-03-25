@@ -1,9 +1,9 @@
 """AI-powered document classification into templates."""
 
-import json
 from sqlalchemy.orm import Session
 
 from app.services.ai_provider import get_provider, save_trace
+from app.utils.json_utils import parse_ai_json_response
 
 
 CLASSIFICATION_SYSTEM_PROMPT = """You are a document classification assistant.
@@ -63,7 +63,7 @@ Document text (first 4000 chars):
     save_trace(db, trace, "classification", document_id=document_id,
                entity_name=document_name)
 
-    data = _parse_json_response(response_text)
+    data = parse_ai_json_response(response_text)
 
     return {
         "template_id": data.get("template_id"),
@@ -71,22 +71,3 @@ Document text (first 4000 chars):
         "reasoning": data.get("reasoning", ""),
         "suggested_type": data.get("suggested_type"),
     }
-
-
-def _parse_json_response(text: str) -> dict:
-    text = text.strip()
-    if text.startswith("```"):
-        lines = text.split("\n")
-        lines = [l for l in lines if not l.strip().startswith("```")]
-        text = "\n".join(lines)
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        start = text.find("{")
-        end = text.rfind("}") + 1
-        if start >= 0 and end > start:
-            try:
-                return json.loads(text[start:end])
-            except json.JSONDecodeError:
-                pass
-    return {}

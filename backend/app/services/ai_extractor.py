@@ -1,9 +1,10 @@
 """AI-powered field extraction from document text."""
 
-import json
 from sqlalchemy.orm import Session
 
 from app.services.ai_provider import get_provider, save_trace
+from app.utils.constants import AI_TEXT_MAX_LENGTH
+from app.utils.json_utils import parse_ai_json_response
 
 
 EXTRACTION_SYSTEM_PROMPT = """You are a document processing assistant that extracts structured data from OCR text.
@@ -43,7 +44,7 @@ Fields to extract:
 {fields_description}
 
 Document text:
-{ocr_text[:8000]}"""
+{ocr_text[:AI_TEXT_MAX_LENGTH]}"""
 
     response_text, trace = await provider.complete(EXTRACTION_SYSTEM_PROMPT, user_prompt)
 
@@ -52,7 +53,7 @@ Document text:
                template_id=template_id, entity_name=document_name)
 
     # Parse JSON from response
-    data = _parse_json_response(response_text)
+    data = parse_ai_json_response(response_text)
 
     # Normalize the result
     result = {}
@@ -76,27 +77,3 @@ Document text:
         }
 
     return result
-
-
-def _parse_json_response(text: str) -> dict:
-    """Try to parse JSON from AI response, handling markdown code blocks."""
-    text = text.strip()
-
-    # Remove markdown code blocks if present
-    if text.startswith("```"):
-        lines = text.split("\n")
-        lines = [l for l in lines if not l.strip().startswith("```")]
-        text = "\n".join(lines)
-
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        # Try to find JSON in the text
-        start = text.find("{")
-        end = text.rfind("}") + 1
-        if start >= 0 and end > start:
-            try:
-                return json.loads(text[start:end])
-            except json.JSONDecodeError:
-                pass
-    return {}

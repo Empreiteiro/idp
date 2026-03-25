@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Document, ExtractionResult
 from app.schemas.document import ExtractionResponse, ExtractionUpdate
+from app.utils.json_utils import parse_extracted_data
 
 router = APIRouter(prefix="/api/documents", tags=["extraction"])
 
@@ -20,7 +21,7 @@ def get_extraction(doc_id: int, db: Session = Depends(get_db)):
         raise HTTPException(404, "No extraction results yet")
 
     ext = doc.extraction
-    data = json.loads(ext.extracted_data) if isinstance(ext.extracted_data, str) else ext.extracted_data
+    data = parse_extracted_data(ext.extracted_data)
     return ExtractionResponse(
         id=ext.id, document_id=ext.document_id, template_id=ext.template_id,
         extracted_data=data, is_reviewed=ext.is_reviewed,
