@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
-import type { AppSettings, SystemInfo, ConnectionTestResult } from "@/lib/types";
+import type { AppSettings, SystemInfo, ConnectionTestResult, DepsValidationResult } from "@/lib/types";
 
 export function useSettings() {
   return useQuery<AppSettings>({
@@ -27,6 +27,16 @@ export function useSystemInfo() {
     queryKey: ["system-info"],
     queryFn: async () => {
       const { data } = await api.get("/api/settings/system-info");
+      return data;
+    },
+  });
+}
+
+export function useValidateDeps() {
+  return useQuery<DepsValidationResult>({
+    queryKey: ["validate-deps"],
+    queryFn: async () => {
+      const { data } = await api.get("/api/settings/validate-deps");
       return data;
     },
   });

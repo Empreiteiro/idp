@@ -5,6 +5,7 @@ import {
   useSettings,
   useUpdateSetting,
   useSystemInfo,
+  useValidateDeps,
   useTestAI,
   useTestOCR,
 } from "@/hooks/use-settings";
@@ -37,6 +38,8 @@ import {
   Zap,
   ScanLine,
   Package,
+  ShieldCheck,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -54,6 +57,7 @@ export default function SettingsPage() {
   const { data, isLoading } = useSettings();
   const updateMutation = useUpdateSetting();
   const { data: sysInfo } = useSystemInfo();
+  const { data: depsValidation, isLoading: depsLoading } = useValidateDeps();
   const testAIMutation = useTestAI();
   const testOCRMutation = useTestOCR();
 
@@ -152,6 +156,83 @@ export default function SettingsPage() {
                   {lib.replace(/_/g, " ")}
                 </Badge>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Dependencies Validation */}
+      {depsValidation && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              {depsValidation.ok ? (
+                <ShieldCheck className="h-4 w-4 text-green-600" />
+              ) : (
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
+              )}
+              Dependencies Validation
+            </CardTitle>
+            <CardDescription>
+              {depsValidation.summary}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Python Packages</p>
+              <div className="flex flex-wrap gap-2">
+                {depsValidation.python_packages.map((dep) => (
+                  <Badge
+                    key={dep.name}
+                    variant={dep.installed ? "default" : "secondary"}
+                    className={`gap-1 ${
+                      dep.installed
+                        ? "bg-green-100 text-green-700 hover:bg-green-100"
+                        : dep.required
+                          ? "bg-red-100 text-red-600 hover:bg-red-100"
+                          : "bg-amber-100 text-amber-700 hover:bg-amber-100"
+                    }`}
+                    title={`${dep.detail}${dep.version ? ` (v${dep.version})` : ""}${dep.required ? " — required" : " — optional"}`}
+                  >
+                    {dep.installed ? (
+                      <CheckCircle className="h-3 w-3" />
+                    ) : (
+                      <XCircle className="h-3 w-3" />
+                    )}
+                    {dep.name}
+                    {dep.version && (
+                      <span className="text-[10px] opacity-70">{dep.version}</span>
+                    )}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">System Tools</p>
+              <div className="flex flex-wrap gap-2">
+                {depsValidation.system_tools.map((dep) => (
+                  <Badge
+                    key={dep.name}
+                    variant={dep.installed ? "default" : "secondary"}
+                    className={`gap-1 ${
+                      dep.installed
+                        ? "bg-green-100 text-green-700 hover:bg-green-100"
+                        : "bg-amber-100 text-amber-700 hover:bg-amber-100"
+                    }`}
+                    title={`${dep.detail}${dep.version ? ` (${dep.version})` : ""}`}
+                  >
+                    {dep.installed ? (
+                      <CheckCircle className="h-3 w-3" />
+                    ) : (
+                      <XCircle className="h-3 w-3" />
+                    )}
+                    {dep.name}
+                    {dep.version && (
+                      <span className="text-[10px] opacity-70">{dep.version}</span>
+                    )}
+                  </Badge>
+                ))}
+              </div>
             </div>
           </CardContent>
         </Card>
