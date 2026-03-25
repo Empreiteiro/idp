@@ -6,6 +6,7 @@ from app.database import get_db
 from app.models.settings import AppSettings
 from app.schemas.responses import SuccessResponse
 from app.core.rate_limit import limiter
+from app.utils.encryption import encrypt_value, decrypt_value
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
@@ -142,10 +143,9 @@ def _get_all_settings(db: Session) -> dict[str, str]:
     for r in rows:
         val = r.value
         if r.key == "ai_api_key":
-            from app.utils.encryption import decrypt_value
             val = decrypt_value(val)
-        if r.key == "ai_api_key" and len(val) > 8:
-            val = val[:4] + "..." + val[-4:]
+            if len(val) > 8:
+                val = val[:4] + "..." + val[-4:]
         result[r.key] = val
     return result
 
@@ -160,10 +160,7 @@ def update_setting(data: SettingUpdate, db: Session = Depends(get_db)):
     if data.key not in ALLOWED_KEYS:
         raise HTTPException(400, f"Unknown setting: {data.key}")
 
-    value = data.value
-    if data.key == "ai_api_key" and value:
-        from app.utils.encryption import encrypt_value
-        value = encrypt_value(value)
+    value = encrypt_value(data.value) if data.key == "ai_api_key" else data.value
 
     setting = db.query(AppSettings).filter(AppSettings.key == data.key).first()
     if setting:
@@ -181,14 +178,12 @@ def update_settings_bulk(settings: dict[str, str], db: Session = Depends(get_db)
     for key, value in settings.items():
         if key not in ALLOWED_KEYS:
             continue
-        if key == "ai_api_key" and value:
-            from app.utils.encryption import encrypt_value
-            value = encrypt_value(value)
+        store_value = encrypt_value(value) if key == "ai_api_key" else value
         setting = db.query(AppSettings).filter(AppSettings.key == key).first()
         if setting:
-            setting.value = value
+            setting.value = store_value
         else:
-            setting = AppSettings(key=key, value=value)
+            setting = AppSettings(key=key, value=store_value)
             db.add(setting)
         updated.append(key)
     db.commit()
