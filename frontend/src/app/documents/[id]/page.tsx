@@ -38,11 +38,13 @@ import {
   Save,
   FolderOpen,
   Info,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import api from "@/lib/api";
-import type { FieldValue } from "@/lib/types";
+import type { FieldValue, TableRowValue } from "@/lib/types";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 function ConfidenceBadge({ confidence }: { confidence: number }) {
@@ -126,6 +128,59 @@ export default function DocumentDetailPage() {
       },
     };
     setEditedData(updated);
+  };
+
+  const handleTableCellChange = (
+    fieldName: string,
+    rowIndex: number,
+    colName: string,
+    newValue: string
+  ) => {
+    if (!extractionData) return;
+    const currentField = extractionData[fieldName];
+    const rows = Array.isArray(currentField?.value)
+      ? [...(currentField.value as TableRowValue[])]
+      : [];
+    rows[rowIndex] = { ...rows[rowIndex], [colName]: newValue };
+    const updated = {
+      ...extractionData,
+      [fieldName]: {
+        ...currentField,
+        value: rows,
+        corrected: true,
+      },
+    };
+    setEditedData(updated);
+  };
+
+  const handleAddTableRow = (fieldName: string) => {
+    if (!extractionData) return;
+    const currentField = extractionData[fieldName];
+    const rows = Array.isArray(currentField?.value)
+      ? [...(currentField.value as TableRowValue[])]
+      : [];
+    const templateField = template?.fields.find((f) => f.field_name === fieldName);
+    const emptyRow: TableRowValue = {};
+    templateField?.columns?.forEach((col) => {
+      emptyRow[col.name] = "";
+    });
+    rows.push(emptyRow);
+    setEditedData({
+      ...extractionData,
+      [fieldName]: { ...currentField, value: rows, corrected: true },
+    });
+  };
+
+  const handleDeleteTableRow = (fieldName: string, rowIndex: number) => {
+    if (!extractionData) return;
+    const currentField = extractionData[fieldName];
+    const rows = Array.isArray(currentField?.value)
+      ? (currentField.value as TableRowValue[]).filter((_, i) => i !== rowIndex)
+      : [];
+    setEditedData({
+      ...extractionData,
+      [fieldName]: { ...currentField, value: rows, corrected: true },
+    });
   };
 
   const handleSave = () => {
@@ -366,14 +421,25 @@ export default function DocumentDetailPage() {
                   const templateField = template?.fields.find(
                     (f) => f.field_name === fieldName
                   );
+                  const isTable =
+                    templateField?.field_type === "table" &&
+                    Array.isArray(field.value);
+                  const fieldLabel =
+                    templateField?.field_label ||
+                    fieldName
+                      .replace(/_/g, " ")
+                      .replace(/\b\w/g, (c) => c.toUpperCase());
+
                   return (
                     <div key={fieldName} className="space-y-1">
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-medium text-muted-foreground">
-                          {templateField?.field_label ||
-                            fieldName
-                              .replace(/_/g, " ")
-                              .replace(/\b\w/g, (c) => c.toUpperCase())}
+                          {fieldLabel}
+                          {isTable && (
+                            <span className="ml-1 text-[10px]">
+                              ({(field.value as TableRowValue[]).length} rows)
+                            </span>
+                          )}
                         </label>
                         <div className="flex items-center gap-1">
                           {field.corrected && (
@@ -387,21 +453,99 @@ export default function DocumentDetailPage() {
                           <ConfidenceBadge confidence={field.confidence} />
                         </div>
                       </div>
-                      <Input
-                        value={
-                          field.value != null ? String(field.value) : ""
-                        }
-                        onChange={(e) =>
-                          handleFieldChange(fieldName, e.target.value)
-                        }
-                        className={
-                          field.corrected
-                            ? "border-blue-300 bg-blue-50"
-                            : field.confidence < 0.7
-                              ? "border-red-200 bg-red-50"
-                              : ""
-                        }
-                      />
+
+                      {isTable && templateField?.columns ? (
+                        <div className="space-y-2">
+                          <div className="overflow-x-auto rounded border">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="border-b bg-muted/50">
+                                  {templateField.columns.map((col) => (
+                                    <th
+                                      key={col.name}
+                                      className="px-2 py-1.5 text-left text-xs font-medium text-muted-foreground"
+                                    >
+                                      {col.label}
+                                    </th>
+                                  ))}
+                                  <th className="w-8 px-1" />
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {(field.value as TableRowValue[]).map(
+                                  (row, rowIdx) => (
+                                    <tr
+                                      key={rowIdx}
+                                      className="border-b last:border-0"
+                                    >
+                                      {templateField.columns!.map((col) => (
+                                        <td key={col.name} className="px-1 py-1">
+                                          <Input
+                                            className="h-7 text-xs"
+                                            value={
+                                              row[col.name] != null
+                                                ? String(row[col.name])
+                                                : ""
+                                            }
+                                            onChange={(e) =>
+                                              handleTableCellChange(
+                                                fieldName,
+                                                rowIdx,
+                                                col.name,
+                                                e.target.value
+                                              )
+                                            }
+                                          />
+                                        </td>
+                                      ))}
+                                      <td className="px-1 py-1">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7"
+                                          onClick={() =>
+                                            handleDeleteTableRow(
+                                              fieldName,
+                                              rowIdx
+                                            )
+                                          }
+                                        >
+                                          <Trash2 className="h-3 w-3 text-red-500" />
+                                        </Button>
+                                      </td>
+                                    </tr>
+                                  )
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => handleAddTableRow(fieldName)}
+                          >
+                            <Plus className="mr-1 h-3 w-3" />
+                            Add Row
+                          </Button>
+                        </div>
+                      ) : (
+                        <Input
+                          value={
+                            field.value != null ? String(field.value) : ""
+                          }
+                          onChange={(e) =>
+                            handleFieldChange(fieldName, e.target.value)
+                          }
+                          className={
+                            field.corrected
+                              ? "border-blue-300 bg-blue-50"
+                              : field.confidence < 0.7
+                                ? "border-red-200 bg-red-50"
+                                : ""
+                          }
+                        />
+                      )}
                     </div>
                   );
                 })}

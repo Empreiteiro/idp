@@ -1,5 +1,12 @@
+import json
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+
+
+class ColumnDefinition(BaseModel):
+    name: str
+    label: str
+    type: str = "text"
 
 
 class FieldCreate(BaseModel):
@@ -8,6 +15,7 @@ class FieldCreate(BaseModel):
     field_type: str = "text"
     required: bool = False
     sort_order: int = 0
+    columns: list[ColumnDefinition] | None = None
 
 
 class FieldUpdate(BaseModel):
@@ -16,6 +24,7 @@ class FieldUpdate(BaseModel):
     field_type: str | None = None
     required: bool | None = None
     sort_order: int | None = None
+    columns: list[ColumnDefinition] | None = None
 
 
 class FieldResponse(BaseModel):
@@ -26,8 +35,16 @@ class FieldResponse(BaseModel):
     field_type: str
     required: bool
     sort_order: int
+    columns: list[ColumnDefinition] | None = None
 
     model_config = {"from_attributes": True}
+
+    @field_validator("columns", mode="before")
+    @classmethod
+    def parse_columns(cls, v):
+        if isinstance(v, str):
+            return json.loads(v)
+        return v
 
 
 class TemplateCreate(BaseModel):

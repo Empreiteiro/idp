@@ -1,11 +1,18 @@
+export interface TableColumnDefinition {
+  name: string;
+  label: string;
+  type: "text" | "number" | "date" | "currency" | "boolean";
+}
+
 export interface TemplateField {
   id: number;
   template_id: number;
   field_name: string;
   field_label: string;
-  field_type: "text" | "number" | "date" | "currency" | "boolean";
+  field_type: "text" | "number" | "date" | "currency" | "boolean" | "table";
   required: boolean;
   sort_order: number;
+  columns?: TableColumnDefinition[] | null;
 }
 
 export interface Template {
@@ -44,10 +51,12 @@ export interface Document {
   updated_at: string;
 }
 
+export type TableRowValue = Record<string, string | number | boolean | null>;
+
 export interface FieldValue {
-  value: string | number | boolean | null;
+  value: string | number | boolean | null | TableRowValue[];
   confidence: number;
-  original_value: string | number | boolean | null;
+  original_value: string | number | boolean | null | TableRowValue[];
   corrected: boolean;
 }
 

@@ -109,14 +109,16 @@ async def process_document(db: Session, document_id: int) -> None:
             db.commit()
             return
 
-        fields_data = [
-            {
+        fields_data = []
+        for f in template.fields:
+            fd = {
                 "field_name": f.field_name,
                 "field_label": f.field_label,
                 "field_type": f.field_type,
             }
-            for f in template.fields
-        ]
+            if f.field_type == "table" and f.columns:
+                fd["columns"] = json.loads(f.columns) if isinstance(f.columns, str) else f.columns
+            fields_data.append(fd)
 
         extracted_data = await extract_fields(
             db, ocr_text, fields_data,
@@ -169,6 +171,9 @@ async def suggest_fields_for_template(db: Session, template: Template) -> None:
     db.flush()
 
     for field_data in suggested:
+        columns_json = None
+        if field_data.get("field_type") == "table" and field_data.get("columns"):
+            columns_json = json.dumps(field_data["columns"])
         field = TemplateField(
             template_id=template.id,
             field_name=field_data["field_name"],
@@ -176,6 +181,7 @@ async def suggest_fields_for_template(db: Session, template: Template) -> None:
             field_type=field_data["field_type"],
             required=field_data.get("required", False),
             sort_order=field_data.get("sort_order", 0),
+            columns=columns_json,
         )
         db.add(field)
 

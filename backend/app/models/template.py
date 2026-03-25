@@ -33,6 +33,7 @@ class TemplateField(Base):
     field_type: Mapped[str] = mapped_column(String(50), nullable=False, default="text")
     required: Mapped[bool] = mapped_column(Boolean, default=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    columns: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     template: Mapped["Template"] = relationship(back_populates="fields")
