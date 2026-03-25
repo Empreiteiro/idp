@@ -101,4 +101,56 @@ app.include_router(llm_logs_router)
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "version": "1.0.0"}
+    """Health check with dependency verification."""
+    import os
+    import shutil
+    from pathlib import Path
+    from sqlalchemy import text
+
+    checks = {}
+    overall = True
+
+    # Database connectivity
+    try:
+        from app.database import SessionLocal
+        db = SessionLocal()
+        try:
+            db.execute(text("SELECT 1"))
+            checks["database"] = {"status": "ok"}
+        finally:
+            db.close()
+    except Exception as e:
+        checks["database"] = {"status": "error", "detail": str(e)}
+        overall = False
+
+    # Upload directory
+    upload_dir = Path(settings.upload_dir)
+    if upload_dir.exists() and os.access(str(upload_dir), os.W_OK):
+        checks["upload_dir"] = {"status": "ok"}
+    else:
+        checks["upload_dir"] = {"status": "error", "detail": "Not writable or missing"}
+        overall = False
+
+    # Disk space
+    try:
+        disk = shutil.disk_usage("/")
+        free_gb = round(disk.free / (1024 ** 3), 1)
+        checks["disk_space"] = {
+            "status": "ok" if free_gb > 1 else "warning",
+            "free_gb": free_gb,
+        }
+        if free_gb <= 1:
+            overall = False
+    except Exception:
+        checks["disk_space"] = {"status": "unknown"}
+
+    status_code = 200 if overall else 503
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "status": "ok" if overall else "degraded",
+            "version": "1.0.0",
+            "checks": checks,
+        },
+    )
