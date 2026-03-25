@@ -213,11 +213,16 @@ class GeminiProvider(AIProvider):
 def get_ai_settings(db: Session) -> tuple[str, str, str]:
     """Get AI settings from database, fallback to env."""
     from app.config import settings as env_settings
+    from app.utils.encryption import decrypt_value
 
     rows = {r.key: r.value for r in db.query(AppSettings).all()}
     provider = rows.get("ai_provider") or env_settings.ai_provider
     api_key = rows.get("ai_api_key") or env_settings.ai_api_key
     model = rows.get("ai_model") or env_settings.ai_model
+
+    # Decrypt the API key (may be encrypted in the database)
+    if api_key and rows.get("ai_api_key"):
+        api_key = decrypt_value(api_key)
 
     return provider, api_key, model
 
