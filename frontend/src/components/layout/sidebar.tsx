@@ -40,8 +40,16 @@ export default function Sidebar() {
       </div>
       <nav className="flex-1 space-y-1 p-3">
         {navItems.map((item) => {
+          const hasMoreSpecificMatch = navItems.some(
+            (other) =>
+              other.href !== item.href &&
+              other.href.startsWith(item.href + "/") &&
+              (pathname === other.href ||
+                pathname.startsWith(other.href + "/"))
+          );
           const isActive =
-            pathname === item.href || pathname.startsWith(item.href + "/");
+            !hasMoreSpecificMatch &&
+            (pathname === item.href || pathname.startsWith(item.href + "/"));
           return (
             <Link
               key={item.href}
