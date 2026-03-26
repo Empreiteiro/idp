@@ -37,11 +37,11 @@ export default function RootLayout({
             >
               Skip to main content
             </a>
-            <div className="flex h-screen overflow-hidden bg-muted/50 p-3 gap-3">
+            <div className="flex h-screen overflow-hidden bg-sidebar">
               <Sidebar />
               <main
                 id="main-content"
-                className="flex-1 overflow-y-auto bg-card rounded-2xl synapse-shadow border border-border/40"
+                className="flex-1 overflow-y-auto bg-card rounded-l-2xl synapse-shadow"
               >
                 <div className="px-8 pt-6">
                   <Breadcrumb />
