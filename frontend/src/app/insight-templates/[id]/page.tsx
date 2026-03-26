@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/layout/page-header";
 
 export default function InsightTemplateDetailPage() {
   const params = useParams();
@@ -92,7 +93,7 @@ export default function InsightTemplateDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-8">
         <Skeleton className="h-10 w-64" />
         <Skeleton className="h-60 w-full" />
       </div>
@@ -104,35 +105,34 @@ export default function InsightTemplateDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href="/insight-templates">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="rounded-xl">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold">{template.name}</h1>
-            {template.description && (
-              <p className="text-muted-foreground">{template.description}</p>
-            )}
-          </div>
+          <PageHeader
+            title={template.name}
+            description={template.description || undefined}
+          />
         </div>
         <div className="flex gap-2">
-          <Badge variant="outline" className="gap-1">
+          <Badge variant="outline" className="gap-1 rounded-full">
             <FolderOpen className="h-3 w-3" />
             {template.template_name}
           </Badge>
-          <Badge variant="outline" className="gap-1">
+          <Badge variant="outline" className="gap-1 rounded-full">
             <BarChart3 className="h-3 w-3" />
             {template.insight_count} insights
           </Badge>
-          <Badge variant={template.is_active ? "default" : "secondary"}>
+          <Badge variant={template.is_active ? "default" : "secondary"} className="rounded-full">
             {template.is_active ? "Active" : "Inactive"}
           </Badge>
           <Button
             variant="outline"
+            className="rounded-xl"
             onClick={handleSuggestSections}
             disabled={suggestMutation.isPending}
           >
@@ -148,7 +148,7 @@ export default function InsightTemplateDetailPage() {
 
       {/* System Prompt */}
       {template.system_prompt && (
-        <Card>
+        <Card className="synapse-shadow border-border/50 rounded-2xl">
           <CardHeader>
             <CardTitle className="text-base">Custom System Prompt</CardTitle>
           </CardHeader>
@@ -161,7 +161,7 @@ export default function InsightTemplateDetailPage() {
       )}
 
       {/* Sections */}
-      <Card>
+      <Card className="synapse-shadow border-border/50 rounded-2xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ListChecks className="h-5 w-5" />
@@ -194,10 +194,11 @@ export default function InsightTemplateDetailPage() {
                         </p>
                       )}
                     </div>
-                    <Badge variant="secondary">#{section.sort_order}</Badge>
+                    <Badge variant="secondary" className="rounded-full">#{section.sort_order}</Badge>
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="rounded-xl"
                       onClick={() => handleDeleteSection(section.id)}
                     >
                       <Trash2 className="h-4 w-4 text-red-500" />
@@ -228,6 +229,7 @@ export default function InsightTemplateDetailPage() {
                 onChange={(e) => setNewPromptHint(e.target.value)}
               />
               <Button
+                className="rounded-xl"
                 onClick={handleAddSection}
                 disabled={addSectionMutation.isPending}
               >

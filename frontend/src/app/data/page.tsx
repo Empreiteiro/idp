@@ -19,18 +19,17 @@ import {
   ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
+import { PageHeader } from "@/components/layout/page-header";
 
 export default function DataPage() {
   const { data, isLoading } = useDataSummary();
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Extracted Data</h1>
-        <p className="text-muted-foreground">
-          View and export extracted data organized by template
-        </p>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Extracted Data"
+        description="View and export extracted data organized by template"
+      />
 
       {isLoading ? (
         <div className="space-y-3">
@@ -39,7 +38,7 @@ export default function DataPage() {
           ))}
         </div>
       ) : !data?.templates.length ? (
-        <Card>
+        <Card className="synapse-shadow border-border/50 rounded-2xl">
           <CardContent className="flex flex-col items-center gap-3 py-12">
             <Table2 className="h-12 w-12 text-muted-foreground" />
             <p className="text-lg font-medium">No data yet</p>
@@ -58,17 +57,17 @@ export default function DataPage() {
         <div className="rounded-lg border">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/50">
-                <TableHead>Template</TableHead>
-                <TableHead className="text-center">Fields</TableHead>
-                <TableHead className="text-center">Extractions</TableHead>
-                <TableHead className="text-center">Reviewed</TableHead>
-                <TableHead className="text-center">Pending</TableHead>
+              <TableRow className="bg-muted/30 hover:bg-muted/30">
+                <TableHead className="text-xs font-semibold uppercase tracking-wider">Template</TableHead>
+                <TableHead className="text-center text-xs font-semibold uppercase tracking-wider">Fields</TableHead>
+                <TableHead className="text-center text-xs font-semibold uppercase tracking-wider">Extractions</TableHead>
+                <TableHead className="text-center text-xs font-semibold uppercase tracking-wider">Reviewed</TableHead>
+                <TableHead className="text-center text-xs font-semibold uppercase tracking-wider">Pending</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data.templates.map((t) => (
-                <TableRow key={t.template_id} className="group">
+                <TableRow key={t.template_id} className="group hover:bg-muted/30">
                   <TableCell>
                     <Link
                       href={`/data/${t.template_id}`}
@@ -80,15 +79,15 @@ export default function DataPage() {
                     </Link>
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge variant="secondary">{t.field_count}</Badge>
+                    <Badge variant="secondary" className="rounded-full">{t.field_count}</Badge>
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge variant="outline">{t.extraction_count}</Badge>
+                    <Badge variant="outline" className="rounded-full">{t.extraction_count}</Badge>
                   </TableCell>
                   <TableCell className="text-center">
                     <Badge
                       variant="outline"
-                      className="gap-1 text-green-600 border-green-200"
+                      className="gap-1 rounded-full text-green-600 border-green-200"
                     >
                       <CheckCircle className="h-3 w-3" />
                       {t.reviewed_count}
@@ -98,7 +97,7 @@ export default function DataPage() {
                     {t.pending_count > 0 ? (
                       <Badge
                         variant="outline"
-                        className="gap-1 text-yellow-600 border-yellow-200"
+                        className="gap-1 rounded-full text-yellow-600 border-yellow-200"
                       >
                         <Clock className="h-3 w-3" />
                         {t.pending_count}

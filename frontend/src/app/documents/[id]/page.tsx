@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/layout/page-header";
 import api from "@/lib/api";
 import type { FieldValue, TableRowValue } from "@/lib/types";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -51,18 +52,18 @@ function ConfidenceBadge({ confidence }: { confidence: number }) {
   const pct = Math.round(confidence * 100);
   if (confidence >= 0.9)
     return (
-      <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
+      <Badge className="rounded-full bg-green-100 text-green-700 hover:bg-green-100">
         {pct}%
       </Badge>
     );
   if (confidence >= 0.7)
     return (
-      <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">
+      <Badge className="rounded-full bg-yellow-100 text-yellow-700 hover:bg-yellow-100">
         {pct}%
       </Badge>
     );
   return (
-    <Badge className="bg-red-100 text-red-700 hover:bg-red-100">{pct}%</Badge>
+    <Badge className="rounded-full bg-red-100 text-red-700 hover:bg-red-100">{pct}%</Badge>
   );
 }
 
@@ -221,7 +222,7 @@ export default function DocumentDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-8">
         <Skeleton className="h-10 w-64" />
         <div className="grid gap-6 lg:grid-cols-2">
           <Skeleton className="h-[600px]" />
@@ -239,64 +240,67 @@ export default function DocumentDetailPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link href="/documents">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-xl font-bold">{doc.filename}</h1>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              {doc.template_name && (
-                <Badge variant="outline" className="gap-1">
-                  <FolderOpen className="h-3 w-3" />
-                  {doc.template_name}
-                </Badge>
-              )}
-              <Badge
-                variant={
-                  doc.status === "completed"
-                    ? "default"
-                    : doc.status === "failed"
-                      ? "destructive"
-                      : doc.status === "review"
-                        ? "secondary"
-                        : "outline"
-                }
-              >
-                {isProcessing && (
-                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                )}
-                {statusLabels[doc.status] || doc.status}
-              </Badge>
-              {doc.page_count && (
-                <span className="text-xs">{doc.page_count} page(s)</span>
-              )}
-              {doc.file_size && (
-                <span className="text-xs">
-                  {(doc.file_size / 1024).toFixed(0)} KB
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={handleReprocess}
-            disabled={reprocessMutation.isPending || isProcessing}
-          >
-            {reprocessMutation.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="mr-2 h-4 w-4" />
-            )}
-            Reprocess
+      <div className="flex items-center gap-3">
+        <Link href="/documents">
+          <Button variant="ghost" size="icon" className="rounded-xl">
+            <ArrowLeft className="h-4 w-4" />
           </Button>
+        </Link>
+        <div className="flex-1">
+          <PageHeader
+            title={doc.filename}
+            description=""
+            actions={
+              <div className="flex items-center gap-2">
+                {doc.template_name && (
+                  <Badge variant="outline" className="rounded-full gap-1">
+                    <FolderOpen className="h-3 w-3" />
+                    {doc.template_name}
+                  </Badge>
+                )}
+                <Badge
+                  className="rounded-full"
+                  variant={
+                    doc.status === "completed"
+                      ? "default"
+                      : doc.status === "failed"
+                        ? "destructive"
+                        : doc.status === "review"
+                          ? "secondary"
+                          : "outline"
+                  }
+                >
+                  {isProcessing && (
+                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                  )}
+                  {statusLabels[doc.status] || doc.status}
+                </Badge>
+                {doc.page_count && (
+                  <span className="text-xs text-muted-foreground">{doc.page_count} page(s)</span>
+                )}
+                {doc.file_size && (
+                  <span className="text-xs text-muted-foreground">
+                    {(doc.file_size / 1024).toFixed(0)} KB
+                  </span>
+                )}
+                <Button
+                  variant="outline"
+                  className="rounded-xl"
+                  onClick={handleReprocess}
+                  disabled={reprocessMutation.isPending || isProcessing}
+                >
+                  {reprocessMutation.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                  )}
+                  Reprocess
+                </Button>
+              </div>
+            }
+          />
         </div>
       </div>
 
@@ -313,7 +317,7 @@ export default function DocumentDetailPage() {
 
       {/* Template Assignment for review/unclassified docs */}
       {(doc.status === "review" || (!doc.template_id && doc.status !== "failed")) && (
-        <Card>
+        <Card className="synapse-shadow border-border/50 rounded-2xl">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm flex items-center gap-2">
               <Info className="h-4 w-4 text-blue-500" />
@@ -342,6 +346,7 @@ export default function DocumentDetailPage() {
                 </SelectContent>
               </Select>
               <Button
+                className="rounded-xl"
                 onClick={handleAssignTemplate}
                 disabled={
                   !selectedTemplateId || assignTemplateMutation.isPending
@@ -362,7 +367,7 @@ export default function DocumentDetailPage() {
       {/* Split View */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Left: Document Viewer */}
-        <Card className="h-fit">
+        <Card className="h-fit synapse-shadow border-border/50 rounded-2xl">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Document Preview</CardTitle>
           </CardHeader>
@@ -384,12 +389,12 @@ export default function DocumentDetailPage() {
         </Card>
 
         {/* Right: Extraction Panel */}
-        <Card className="h-fit">
+        <Card className="h-fit synapse-shadow border-border/50 rounded-2xl">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm">Extracted Data</CardTitle>
               {doc.extraction?.is_reviewed && (
-                <Badge className="bg-green-100 text-green-700">
+                <Badge className="rounded-full bg-green-100 text-green-700">
                   <CheckCircle className="mr-1 h-3 w-3" />
                   Reviewed
                 </Badge>
@@ -445,7 +450,7 @@ export default function DocumentDetailPage() {
                           {field.corrected && (
                             <Badge
                               variant="outline"
-                              className="text-[10px] px-1"
+                              className="rounded-full text-[10px] px-1"
                             >
                               Edited
                             </Badge>
@@ -522,7 +527,7 @@ export default function DocumentDetailPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-7 text-xs"
+                            className="h-7 text-xs rounded-xl"
                             onClick={() => handleAddTableRow(fieldName)}
                           >
                             <Plus className="mr-1 h-3 w-3" />
@@ -556,7 +561,7 @@ export default function DocumentDetailPage() {
                   {editedData && (
                     <Button
                       variant="outline"
-                      className="flex-1"
+                      className="flex-1 rounded-xl"
                       onClick={handleSave}
                       disabled={updateMutation.isPending}
                     >
@@ -570,7 +575,7 @@ export default function DocumentDetailPage() {
                   )}
                   {!doc.extraction?.is_reviewed && (
                     <Button
-                      className="flex-1"
+                      className="flex-1 rounded-xl"
                       onClick={handleApprove}
                       disabled={approveMutation.isPending}
                     >

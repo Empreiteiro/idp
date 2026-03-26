@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/layout/page-header";
 
 export default function UploadPage() {
   const router = useRouter();
@@ -89,22 +90,20 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <div className="flex items-center gap-3">
-        <Link href="/documents">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold">Upload Documents</h1>
-          <p className="text-muted-foreground">
-            Upload documents for intelligent data extraction
-          </p>
-        </div>
-      </div>
+    <div className="mx-auto max-w-2xl space-y-8">
+      <PageHeader
+        title="Upload Documents"
+        description="Upload documents for intelligent data extraction"
+        actions={
+          <Link href="/documents">
+            <Button variant="ghost" size="icon" className="rounded-xl">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+        }
+      />
 
-      <Card>
+      <Card className="synapse-shadow border-border/50 rounded-2xl">
         <CardHeader>
           <CardTitle>Template Selection</CardTitle>
           <CardDescription>
@@ -139,7 +138,7 @@ export default function UploadPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="synapse-shadow border-border/50 rounded-2xl">
         <CardHeader>
           <CardTitle>Files</CardTitle>
         </CardHeader>
@@ -189,7 +188,7 @@ export default function UploadPage() {
                   </Button>
                 </div>
               ))}
-              <Badge variant="secondary">{files.length} file(s) selected</Badge>
+              <Badge variant="secondary" className="rounded-full">{files.length} file(s) selected</Badge>
             </div>
           )}
         </CardContent>
@@ -197,12 +196,12 @@ export default function UploadPage() {
 
       <div className="flex gap-3">
         <Link href="/documents" className="flex-1">
-          <Button variant="outline" className="w-full">
+          <Button variant="outline" className="w-full rounded-xl">
             Cancel
           </Button>
         </Link>
         <Button
-          className="flex-1"
+          className="flex-1 rounded-xl"
           onClick={handleUpload}
           disabled={!files.length || uploadMutation.isPending}
         >

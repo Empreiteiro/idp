@@ -16,7 +16,6 @@ import {
   FileText,
   FolderOpen,
   CheckCircle,
-  AlertCircle,
   Clock,
   Loader2,
   Upload,
@@ -25,17 +24,9 @@ import {
   Plus,
 } from "lucide-react";
 import Link from "next/link";
-
-const statusColors: Record<string, string> = {
-  completed: "bg-green-500",
-  failed: "bg-red-500",
-  review: "bg-yellow-500",
-  uploaded: "bg-blue-500",
-  ocr_processing: "bg-blue-400",
-  ocr_complete: "bg-blue-300",
-  classifying: "bg-purple-400",
-  extracting: "bg-indigo-400",
-};
+import { PageHeader } from "@/components/layout/page-header";
+import { StatusDot } from "@/components/layout/status-dot";
+import { FolderCard } from "@/components/layout/folder-card";
 
 const statusLabels: Record<string, string> = {
   completed: "Completed",
@@ -54,94 +45,104 @@ export default function DashboardPage() {
   const { data: dataSummary } = useDataSummary();
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Overview of your document processing
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Link href="/templates/new">
-            <Button variant="outline" size="sm">
-              <Plus className="mr-1 h-4 w-4" />
-              New Template
-            </Button>
-          </Link>
-          <Link href="/documents/upload">
-            <Button size="sm">
-              <Upload className="mr-1 h-4 w-4" />
-              Upload
-            </Button>
-          </Link>
-        </div>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Dashboard"
+        description="Overview of your document processing"
+        actions={
+          <>
+            <Link href="/templates/new">
+              <Button variant="outline" size="sm" className="rounded-xl">
+                <Plus className="mr-1.5 h-4 w-4" />
+                New Template
+              </Button>
+            </Link>
+            <Link href="/documents/upload">
+              <Button size="sm" className="rounded-xl">
+                <Upload className="mr-1.5 h-4 w-4" />
+                Upload
+              </Button>
+            </Link>
+          </>
+        }
+      />
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="synapse-shadow border-border/50 rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Documents
             </CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+              <FileText className="h-4 w-4 text-primary" />
+            </div>
           </CardHeader>
           <CardContent>
             {statsLoading ? (
               <Skeleton className="h-8 w-20" />
             ) : (
-              <div className="text-2xl font-bold">
+              <div className="text-3xl font-bold tracking-tight">
                 {stats?.total_documents ?? 0}
               </div>
             )}
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="synapse-shadow border-border/50 rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Templates</CardTitle>
-            <FolderOpen className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Templates
+            </CardTitle>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10">
+              <FolderOpen className="h-4 w-4 text-blue-500" />
+            </div>
           </CardHeader>
           <CardContent>
             {statsLoading ? (
               <Skeleton className="h-8 w-20" />
             ) : (
-              <div className="text-2xl font-bold">
+              <div className="text-3xl font-bold tracking-tight">
                 {stats?.total_templates ?? 0}
               </div>
             )}
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="synapse-shadow border-border/50 rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Pending Review
             </CardTitle>
-            <Clock className="h-4 w-4 text-yellow-500" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-yellow-500/10">
+              <Clock className="h-4 w-4 text-yellow-500" />
+            </div>
           </CardHeader>
           <CardContent>
             {statsLoading ? (
               <Skeleton className="h-8 w-20" />
             ) : (
-              <div className="text-2xl font-bold text-yellow-600">
+              <div className="text-3xl font-bold tracking-tight text-yellow-600 dark:text-yellow-400">
                 {stats?.pending_review ?? 0}
               </div>
             )}
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="synapse-shadow border-border/50 rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Reviewed</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Reviewed
+            </CardTitle>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-500/10">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+            </div>
           </CardHeader>
           <CardContent>
             {statsLoading ? (
               <Skeleton className="h-8 w-20" />
             ) : (
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-3xl font-bold tracking-tight text-green-600 dark:text-green-400">
                 {stats?.reviewed ?? 0}
               </div>
             )}
@@ -149,29 +150,58 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      {/* Recent Templates as Folder Cards */}
+      {dataSummary?.templates && dataSummary.templates.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-muted-foreground">
+              Recent {Math.min(dataSummary.templates.length, 4)}
+            </h2>
+            <Link href="/data">
+              <Button variant="ghost" size="sm" className="gap-1 text-xs">
+                View all
+                <ArrowRight className="h-3 w-3" />
+              </Button>
+            </Link>
+          </div>
+          <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {dataSummary.templates.slice(0, 4).map((t) => (
+              <FolderCard
+                key={t.template_id}
+                title={t.template_name}
+                subtitle={`${t.extraction_count} records · ${t.field_count} fields`}
+                href={`/data/${t.template_id}`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Status Breakdown */}
       {stats?.documents_by_status &&
         Object.keys(stats.documents_by_status).length > 0 && (
-          <Card>
+          <Card className="synapse-shadow border-border/50 rounded-2xl">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Documents by Status</CardTitle>
+              <CardTitle className="text-sm font-semibold">
+                Documents by Status
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-2">
                 {Object.entries(stats.documents_by_status).map(
                   ([status, count]) => (
                     <Link
                       key={status}
                       href={`/documents?status=${status}`}
-                      className="flex items-center gap-2 rounded-lg border px-3 py-2 transition-colors hover:bg-muted"
+                      className="flex items-center gap-2 rounded-full border border-border/60 px-3.5 py-1.5 text-sm transition-colors hover:bg-muted"
                     >
-                      <div
-                        className={`h-2.5 w-2.5 rounded-full ${statusColors[status] || "bg-gray-400"}`}
-                      />
-                      <span className="text-sm font-medium">
+                      <StatusDot status={status} />
+                      <span className="font-medium">
                         {statusLabels[status] || status}
                       </span>
-                      <Badge variant="secondary">{count}</Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {count}
+                      </span>
                     </Link>
                   )
                 )}
@@ -182,14 +212,16 @@ export default function DashboardPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Recent Documents */}
-        <Card>
+        <Card className="synapse-shadow border-border/50 rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-sm">Recent Documents</CardTitle>
+              <CardTitle className="text-sm font-semibold">
+                Recent Documents
+              </CardTitle>
               <CardDescription>Latest processed documents</CardDescription>
             </div>
             <Link href="/documents">
-              <Button variant="ghost" size="sm" className="gap-1">
+              <Button variant="ghost" size="sm" className="gap-1 text-xs">
                 View all
                 <ArrowRight className="h-3 w-3" />
               </Button>
@@ -199,7 +231,7 @@ export default function DashboardPage() {
             {recentLoading ? (
               <div className="space-y-3">
                 {[...Array(5)].map((_, i) => (
-                  <Skeleton key={i} className="h-12 w-full" />
+                  <Skeleton key={i} className="h-12 w-full rounded-xl" />
                 ))}
               </div>
             ) : !recent?.length ? (
@@ -214,15 +246,17 @@ export default function DashboardPage() {
                 </Link>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {recent.map((doc) => (
                   <Link
                     key={doc.id}
                     href={`/documents/${doc.id}`}
-                    className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted"
+                    className="flex items-center justify-between rounded-xl p-3 transition-colors hover:bg-muted/50"
                   >
                     <div className="flex items-center gap-3">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/5">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                      </div>
                       <div>
                         <p className="text-sm font-medium line-clamp-1">
                           {doc.filename}
@@ -243,7 +277,7 @@ export default function DashboardPage() {
                               ? "destructive"
                               : "secondary"
                         }
-                        className="text-[11px]"
+                        className="text-[11px] rounded-full"
                       >
                         {doc.status === "extracting" ||
                         doc.status === "ocr_processing" ? (
@@ -260,14 +294,16 @@ export default function DashboardPage() {
         </Card>
 
         {/* Data Summary */}
-        <Card>
+        <Card className="synapse-shadow border-border/50 rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-sm">Extracted Data</CardTitle>
+              <CardTitle className="text-sm font-semibold">
+                Extracted Data
+              </CardTitle>
               <CardDescription>Data tables by template</CardDescription>
             </div>
             <Link href="/data">
-              <Button variant="ghost" size="sm" className="gap-1">
+              <Button variant="ghost" size="sm" className="gap-1 text-xs">
                 View all
                 <ArrowRight className="h-3 w-3" />
               </Button>
@@ -280,15 +316,17 @@ export default function DashboardPage() {
                 <p>No extracted data yet</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {dataSummary.templates.map((t) => (
                   <Link
                     key={t.template_id}
                     href={`/data/${t.template_id}`}
-                    className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted"
+                    className="flex items-center justify-between rounded-xl p-3 transition-colors hover:bg-muted/50"
                   >
                     <div className="flex items-center gap-3">
-                      <Table2 className="h-4 w-4 text-primary" />
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/5">
+                        <Table2 className="h-4 w-4 text-primary" />
+                      </div>
                       <div>
                         <p className="text-sm font-medium">
                           {t.template_name}
@@ -299,13 +337,13 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant="secondary">
+                      <Badge variant="secondary" className="rounded-full">
                         {t.extraction_count} records
                       </Badge>
                       {t.pending_count > 0 && (
                         <Badge
                           variant="outline"
-                          className="text-yellow-600 border-yellow-200"
+                          className="text-yellow-600 border-yellow-200 rounded-full"
                         >
                           {t.pending_count} pending
                         </Badge>

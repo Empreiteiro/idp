@@ -40,6 +40,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
+import { PageHeader } from "@/components/layout/page-header";
 
 const typeLabels: Record<string, string> = {
   extraction: "Extraction",
@@ -90,17 +91,15 @@ export default function LLMLogsPage() {
   const totalPages = data ? Math.ceil(data.total / data.limit) : 0;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">LLM Logs</h1>
-        <p className="text-muted-foreground">
-          Trace and monitor all AI provider requests
-        </p>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="LLM Logs"
+        description="Trace and monitor all AI provider requests"
+      />
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <Card>
+        <Card className="synapse-shadow border-border/50 rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground">
               Total Requests
@@ -117,7 +116,7 @@ export default function LLMLogsPage() {
             )}
           </CardContent>
         </Card>
-        <Card>
+        <Card className="synapse-shadow border-border/50 rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground">
               Total Tokens
@@ -134,7 +133,7 @@ export default function LLMLogsPage() {
             )}
           </CardContent>
         </Card>
-        <Card>
+        <Card className="synapse-shadow border-border/50 rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground">
               Est. Cost
@@ -151,7 +150,7 @@ export default function LLMLogsPage() {
             )}
           </CardContent>
         </Card>
-        <Card>
+        <Card className="synapse-shadow border-border/50 rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground">
               Avg Latency
@@ -168,7 +167,7 @@ export default function LLMLogsPage() {
             )}
           </CardContent>
         </Card>
-        <Card>
+        <Card className="synapse-shadow border-border/50 rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground">
               Success Rate
@@ -194,7 +193,7 @@ export default function LLMLogsPage() {
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium text-muted-foreground">By provider:</span>
               {Object.entries(stats.by_provider).map(([p, count]) => (
-                <Badge key={p} variant="outline" className={providerColors[p] || ""}>
+                <Badge key={p} variant="outline" className={`rounded-full ${providerColors[p] || ""}`}>
                   {p} ({count})
                 </Badge>
               ))}
@@ -204,7 +203,7 @@ export default function LLMLogsPage() {
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium text-muted-foreground">By type:</span>
               {Object.entries(stats.by_type).map(([t, count]) => (
-                <Badge key={t} variant="secondary">
+                <Badge key={t} variant="secondary" className="rounded-full">
                   {typeLabels[t] || t} ({count})
                 </Badge>
               ))}
@@ -257,7 +256,7 @@ export default function LLMLogsPage() {
           </SelectContent>
         </Select>
         {(typeFilter || providerFilter || statusFilter) && (
-          <Button variant="ghost" onClick={() => {
+          <Button variant="ghost" className="rounded-xl" onClick={() => {
             setTypeFilter(""); setProviderFilter(""); setStatusFilter(""); setPage(1);
           }}>
             Clear filters
@@ -273,7 +272,7 @@ export default function LLMLogsPage() {
           ))}
         </div>
       ) : !data?.logs.length ? (
-        <Card>
+        <Card className="synapse-shadow border-border/50 rounded-2xl">
           <CardContent className="flex flex-col items-center gap-3 py-12">
             <Activity className="h-12 w-12 text-muted-foreground" />
             <p className="text-lg font-medium">No LLM requests yet</p>
@@ -287,20 +286,20 @@ export default function LLMLogsPage() {
           <div className="rounded-lg border">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead>Timestamp</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Provider / Model</TableHead>
-                  <TableHead>Entity</TableHead>
-                  <TableHead className="text-right">Tokens</TableHead>
-                  <TableHead className="text-right">Latency</TableHead>
-                  <TableHead className="text-right">Cost</TableHead>
-                  <TableHead>Status</TableHead>
+                <TableRow className="bg-muted/30 hover:bg-muted/30">
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider">Timestamp</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider">Type</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider">Provider / Model</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider">Entity</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-right">Tokens</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-right">Latency</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-right">Cost</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data.logs.map((log) => (
-                  <TableRow key={log.id} className="group">
+                  <TableRow key={log.id} className="group hover:bg-muted/30">
                     <TableCell>
                       <Link
                         href={`/llm-logs/${log.id}`}
@@ -311,13 +310,13 @@ export default function LLMLogsPage() {
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className="text-[11px]">
+                      <Badge variant="secondary" className="rounded-full text-[11px]">
                         {typeLabels[log.request_type] || log.request_type}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-0.5">
-                        <Badge variant="outline" className={`text-[11px] w-fit ${providerColors[log.provider] || ""}`}>
+                        <Badge variant="outline" className={`rounded-full text-[11px] w-fit ${providerColors[log.provider] || ""}`}>
                           {log.provider}
                         </Badge>
                         <span className="text-[11px] text-muted-foreground font-mono">
@@ -364,12 +363,12 @@ export default function LLMLogsPage() {
                 {Math.min(page * data.limit, data.total)} of {data.total}
               </span>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" disabled={page <= 1}
+                <Button variant="outline" size="sm" className="rounded-xl" disabled={page <= 1}
                   onClick={() => setPage((p) => p - 1)}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <span className="text-sm">{page} / {totalPages}</span>
-                <Button variant="outline" size="sm" disabled={page >= totalPages}
+                <Button variant="outline" size="sm" className="rounded-xl" disabled={page >= totalPages}
                   onClick={() => setPage((p) => p + 1)}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>

@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   ArrowLeft,
   Plus,
@@ -165,45 +166,42 @@ export default function TemplateDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link href="/templates">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold">{template.name}</h1>
-            {template.description && (
-              <p className="text-muted-foreground">{template.description}</p>
+    <div className="space-y-8">
+      <PageHeader
+        title={template.name}
+        description={template.description || undefined}
+        actions={
+          <div className="flex items-center gap-3">
+            <Link href="/templates">
+              <Button variant="ghost" size="icon" className="rounded-xl">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </Link>
+            <Badge variant="outline" className="rounded-full">
+              <FileText className="mr-1 h-3 w-3" />
+              {template.document_count} documents
+            </Badge>
+            {template.example_file && (
+              <Button
+                variant="outline"
+                className="rounded-xl"
+                onClick={handleSuggestFields}
+                disabled={suggestMutation.isPending}
+              >
+                {suggestMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Wand2 className="mr-2 h-4 w-4" />
+                )}
+                Re-suggest Fields
+              </Button>
             )}
           </div>
-        </div>
-        <div className="flex gap-2">
-          <Badge variant="outline">
-            <FileText className="mr-1 h-3 w-3" />
-            {template.document_count} documents
-          </Badge>
-          {template.example_file && (
-            <Button
-              variant="outline"
-              onClick={handleSuggestFields}
-              disabled={suggestMutation.isPending}
-            >
-              {suggestMutation.isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Wand2 className="mr-2 h-4 w-4" />
-              )}
-              Re-suggest Fields
-            </Button>
-          )}
-        </div>
-      </div>
+        }
+      />
 
       {/* Fields */}
-      <Card>
+      <Card className="synapse-shadow border-border/50 rounded-2xl">
         <CardHeader>
           <CardTitle>Extraction Fields</CardTitle>
           <CardDescription>
@@ -230,11 +228,11 @@ export default function TemplateDetailPage() {
                         {field.field_name}
                       </p>
                     </div>
-                    <Badge variant="secondary">
+                    <Badge variant="secondary" className="rounded-full">
                       {field.field_type === "table" && <Table2 className="mr-1 h-3 w-3" />}
                       {field.field_type}
                     </Badge>
-                    {field.required && <Badge variant="default">Required</Badge>}
+                    {field.required && <Badge variant="default" className="rounded-full">Required</Badge>}
                     <div className="flex items-center gap-1">
                       <span className="text-xs text-muted-foreground">Req</span>
                       <Switch
@@ -251,6 +249,7 @@ export default function TemplateDetailPage() {
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="rounded-xl"
                       onClick={() => handleDeleteField(field.id)}
                     >
                       <Trash2 className="h-4 w-4 text-red-500" />
@@ -260,7 +259,7 @@ export default function TemplateDetailPage() {
                   {field.field_type === "table" && field.columns && field.columns.length > 0 && (
                     <div className="mt-2 ml-4 flex flex-wrap gap-1">
                       {field.columns.map((col) => (
-                        <Badge key={col.name} variant="outline" className="text-xs">
+                        <Badge key={col.name} variant="outline" className="text-xs rounded-full">
                           {col.label} ({col.type})
                         </Badge>
                       ))}
@@ -311,7 +310,7 @@ export default function TemplateDetailPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button onClick={handleAddField} disabled={addFieldMutation.isPending}>
+              <Button className="rounded-xl" onClick={handleAddField} disabled={addFieldMutation.isPending}>
                 <Plus className="mr-1 h-4 w-4" />
                 Add
               </Button>
@@ -322,7 +321,7 @@ export default function TemplateDetailPage() {
               <div className="ml-4 space-y-2 rounded border bg-muted/30 p-3">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium">Table Columns</p>
-                  <Button variant="outline" size="sm" onClick={handleAddColumn}>
+                  <Button variant="outline" size="sm" className="rounded-xl" onClick={handleAddColumn}>
                     <Plus className="mr-1 h-3 w-3" />
                     Add Column
                   </Button>
@@ -371,6 +370,7 @@ export default function TemplateDetailPage() {
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="rounded-xl"
                       onClick={() => handleRemoveColumn(idx)}
                     >
                       <Trash2 className="h-4 w-4 text-red-500" />

@@ -24,6 +24,7 @@ import {
 import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/layout/page-header";
 
 export default function NewInsightTemplatePage() {
   const router = useRouter();
@@ -67,22 +68,20 @@ export default function NewInsightTemplatePage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center gap-3">
         <Link href="/insight-templates">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" className="rounded-xl">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold">New Insight Template</h1>
-          <p className="text-muted-foreground">
-            Create an analytical report template for a document type
-          </p>
-        </div>
+        <PageHeader
+          title="New Insight Template"
+          description="Create an analytical report template for a document type"
+        />
       </div>
 
-      <Card>
+      <Card className="synapse-shadow border-border/50 rounded-2xl">
         <CardHeader>
           <CardTitle>Template Details</CardTitle>
           <CardDescription>
@@ -148,7 +147,7 @@ export default function NewInsightTemplatePage() {
           <Button
             onClick={handleCreate}
             disabled={createMutation.isPending}
-            className="w-full"
+            className="w-full rounded-xl"
           >
             {createMutation.isPending && (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
