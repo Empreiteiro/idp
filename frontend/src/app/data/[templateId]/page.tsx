@@ -225,6 +225,9 @@ export default function DataTablePage() {
                 <thead>
                   <tr className="border-b bg-muted/30">
                     <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      ID
+                    </th>
+                    <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       Document
                     </th>
                     {data.columns.map((col) => (
@@ -249,9 +252,12 @@ export default function DataTablePage() {
                 <tbody>
                   {data.rows.map((row) => (
                     <tr
-                      key={row._doc_id}
+                      key={row._extraction_id}
                       className="border-b transition-colors hover:bg-muted/30"
                     >
+                      <td className="whitespace-nowrap px-4 py-3 text-muted-foreground text-xs font-mono">
+                        {row._extraction_id}
+                      </td>
                       <td className="whitespace-nowrap px-4 py-3">
                         <Link
                           href={`/documents/${row._doc_id}`}

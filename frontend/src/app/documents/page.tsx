@@ -99,6 +99,7 @@ export default function DocumentsPage() {
       <PageHeader
         title="Documents"
         description={`${data?.total ?? 0} documents total`}
+        titleExtra={<ViewToggle value={viewMode} onChange={setViewMode} />}
         actions={
           <Link href="/documents/upload">
             <Button className="rounded-xl">
@@ -140,7 +141,7 @@ export default function DocumentsPage() {
       )}
 
       {/* Filters + View Toggle */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3">
         <div className="flex gap-3">
           <Select
             value={statusFilter}
@@ -194,7 +195,6 @@ export default function DocumentsPage() {
             </Button>
           )}
         </div>
-        <ViewToggle value={viewMode} onChange={setViewMode} />
       </div>
 
       {/* Document List/Grid */}
@@ -222,6 +222,9 @@ export default function DocumentsPage() {
                 <TableRow className="bg-muted/30 hover:bg-muted/30">
                   <TableHead className="w-10">
                     <Checkbox />
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider">
+                    ID
                   </TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider">
                     File name
@@ -255,6 +258,9 @@ export default function DocumentsPage() {
                     >
                       <TableCell>
                         <Checkbox />
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs font-mono">
+                        {doc.id}
                       </TableCell>
                       <TableCell>
                         <Link

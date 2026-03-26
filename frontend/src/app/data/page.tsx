@@ -58,6 +58,7 @@ export default function DataPage() {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/30 hover:bg-muted/30">
+                <TableHead className="text-xs font-semibold uppercase tracking-wider">ID</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider">Template</TableHead>
                 <TableHead className="text-center text-xs font-semibold uppercase tracking-wider">Fields</TableHead>
                 <TableHead className="text-center text-xs font-semibold uppercase tracking-wider">Extractions</TableHead>
@@ -68,6 +69,9 @@ export default function DataPage() {
             <TableBody>
               {data.templates.map((t) => (
                 <TableRow key={t.template_id} className="group hover:bg-muted/30">
+                  <TableCell className="text-muted-foreground text-xs font-mono">
+                    {t.template_id}
+                  </TableCell>
                   <TableCell>
                     <Link
                       href={`/data/${t.template_id}`}

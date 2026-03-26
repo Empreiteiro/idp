@@ -62,6 +62,7 @@ def get_template_data_table(
         data = parse_extracted_data(ext.extracted_data)
 
         row = {
+            "_extraction_id": ext.id,
             "_doc_id": doc.id,
             "_filename": doc.filename,
             "_status": doc.status,
