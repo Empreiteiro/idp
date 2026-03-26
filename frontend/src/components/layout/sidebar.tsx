@@ -41,11 +41,8 @@ function SectionLabel({ children }: { children: string }) {
 const mainNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, countKey: "total_documents" as const },
   { href: "/templates", label: "Templates", icon: FolderOpen, countKey: "total_templates" as const },
-  { href: "/documents", label: "Documents", icon: FileText, countKey: null },
   { href: "/documents/upload", label: "Upload", icon: Upload, countKey: null },
-  { href: "/data", label: "Extracted Data", icon: Table2, countKey: null },
   { href: "/insight-templates", label: "Insight Templates", icon: Lightbulb, countKey: null },
-  { href: "/insights", label: "Insights", icon: BarChart3, countKey: null },
   { href: "/llm-logs", label: "LLM Logs", icon: Activity, countKey: null },
   { href: "/settings", label: "Settings", icon: Settings, countKey: null },
 ];
