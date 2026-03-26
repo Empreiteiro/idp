@@ -1,19 +1,23 @@
 """OCR text extraction with multiple fallback strategies.
 
 Priority for PDFs:
-1. pdfplumber  – fast, works for text-based (digital) PDFs
-2. PyMuPDF (fitz) + pytesseract – for scanned PDFs (needs Tesseract only)
-3. PyMuPDF (fitz) + AI vision – for scanned PDFs when Tesseract is unavailable
-4. pdf2image + pytesseract – legacy fallback (needs poppler + Tesseract)
+1. Mistral OCR (if configured as ocr_provider)
+2. pdfplumber  – fast, works for text-based (digital) PDFs
+3. PyMuPDF (fitz) + pytesseract – for scanned PDFs (needs Tesseract only)
+4. PyMuPDF (fitz) + AI vision – for scanned PDFs when Tesseract is unavailable
+5. pdf2image + pytesseract – legacy fallback (needs poppler + Tesseract)
 """
 
 import base64
 import io
+import logging
 from pathlib import Path
 
 from PIL import Image
 
 from app.config import settings
+
+logger = logging.getLogger("idp.ocr")
 
 
 def _get_tesseract_cmd() -> str:
@@ -32,6 +36,22 @@ def _get_poppler_path() -> str | None:
     if settings.poppler_path:
         return settings.poppler_path
     return None
+
+
+def _get_ocr_provider() -> str:
+    db_val = _get_db_setting("ocr_provider")
+    if db_val:
+        return db_val
+    return settings.ocr_provider or "default"
+
+
+def _get_mistral_api_key() -> str:
+    from app.utils.encryption import decrypt_value
+
+    db_val = _get_db_setting("mistral_api_key")
+    if db_val:
+        return decrypt_value(db_val)
+    return settings.mistral_api_key or ""
 
 
 def _get_db_setting(key: str) -> str:
@@ -64,6 +84,102 @@ def _image_to_base64(img: Image.Image, fmt: str = "PNG") -> str:
     buf = io.BytesIO()
     img.save(buf, format=fmt)
     return base64.b64encode(buf.getvalue()).decode("utf-8")
+
+
+# ── Mistral OCR ─────────────────────────────────────────────────────────────
+
+def _mistral_available() -> bool:
+    """Check if Mistral OCR is configured and available."""
+    try:
+        api_key = _get_mistral_api_key()
+        if not api_key:
+            return False
+        import mistralai  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
+def _ocr_with_mistral_pdf(pdf_path: str | Path) -> tuple[str, int]:
+    """Process a PDF using Mistral OCR API.
+
+    Uploads the file, calls OCR, and returns concatenated markdown text.
+    """
+    from mistralai import Mistral
+
+    api_key = _get_mistral_api_key()
+    if not api_key:
+        raise ValueError("Mistral API key not configured")
+
+    client = Mistral(api_key=api_key)
+
+    # Upload the file
+    with open(str(pdf_path), "rb") as f:
+        uploaded = client.files.upload(file={
+            "file_name": Path(pdf_path).name,
+            "content": f,
+        })
+
+    # Get a signed URL for the uploaded file
+    signed = client.files.get_signed_url(file_id=uploaded.id)
+
+    # Process with OCR
+    response = client.ocr.process(
+        model="mistral-ocr-latest",
+        document={
+            "type": "document_url",
+            "document_url": signed.url,
+        },
+    )
+
+    # Collect markdown from all pages
+    texts: list[str] = []
+    page_count = len(response.pages)
+    for page in response.pages:
+        page_text = page.markdown.strip() if page.markdown else ""
+        if page_text:
+            texts.append(f"--- Page {page.index} ---\n{page_text}")
+
+    # Cleanup: delete uploaded file
+    try:
+        client.files.delete(file_id=uploaded.id)
+    except Exception:
+        pass
+
+    return "\n\n".join(texts), page_count
+
+
+def _ocr_with_mistral_image(image_path: str | Path) -> str:
+    """Process an image using Mistral OCR API."""
+    from mistralai import Mistral
+
+    api_key = _get_mistral_api_key()
+    if not api_key:
+        raise ValueError("Mistral API key not configured")
+
+    client = Mistral(api_key=api_key)
+
+    # Read image and encode as base64 data URL
+    img = Image.open(image_path)
+    if img.mode != "RGB":
+        img = img.convert("RGB")
+    b64 = _image_to_base64(img, "JPEG")
+
+    response = client.ocr.process(
+        model="mistral-ocr-latest",
+        document={
+            "type": "image_url",
+            "image_url": f"data:image/jpeg;base64,{b64}",
+        },
+    )
+
+    texts: list[str] = []
+    for page in response.pages:
+        page_text = page.markdown.strip() if page.markdown else ""
+        if page_text:
+            texts.append(page_text)
+
+    return "\n\n".join(texts)
 
 
 # ── Image OCR ────────────────────────────────────────────────────────────────
@@ -159,6 +275,17 @@ def _ocr_with_ai(img: Image.Image) -> str:
 
 def extract_text_from_image(image_path: str | Path) -> str:
     """OCR a single image file."""
+    # Try Mistral OCR first if configured
+    ocr_provider = _get_ocr_provider()
+    if ocr_provider == "mistral" and _mistral_available():
+        try:
+            text = _ocr_with_mistral_image(image_path)
+            if text.strip():
+                logger.info("Image OCR completed with Mistral OCR")
+                return text
+        except Exception as e:
+            logger.warning("Mistral OCR failed for image, falling back: %s", e)
+
     img = Image.open(image_path)
 
     if _tesseract_available():
@@ -256,12 +383,25 @@ def _pdf_pdf2image_ocr(pdf_path: str | Path) -> tuple[str, int]:
 def extract_text_from_pdf(pdf_path: str | Path) -> tuple[str, int]:
     """Extract text from a PDF using the best available strategy.
 
+    0. Mistral OCR – if configured as ocr_provider (dedicated OCR API)
     1. pdfplumber  – fast, for digital/text-based PDFs
     2. PyMuPDF+Tesseract – for scanned PDFs (no poppler)
     3. PyMuPDF+AI vision – for scanned PDFs when Tesseract is absent
     4. pdf2image+Tesseract – legacy (needs poppler + Tesseract)
     """
     errors: list[str] = []
+
+    # ── Strategy 0: Mistral OCR (if configured) ──────────────────────────
+    ocr_provider = _get_ocr_provider()
+    if ocr_provider == "mistral" and _mistral_available():
+        try:
+            text, page_count = _ocr_with_mistral_pdf(pdf_path)
+            if text.strip():
+                logger.info("PDF OCR completed with Mistral OCR (%d pages)", page_count)
+                return text, page_count
+        except Exception as e:
+            errors.append(f"Mistral OCR: {e}")
+            logger.warning("Mistral OCR failed, falling back to default strategies: %s", e)
 
     # ── Strategy 1: pdfplumber (digital text) ────────────────────────────
     try:
@@ -307,8 +447,7 @@ def extract_text_from_pdf(pdf_path: str | Path) -> tuple[str, int]:
     raise ValueError(
         "Failed to extract text from PDF. Tried strategies:\n"
         + "\n".join(f"  - {e}" for e in errors)
-        + "\n\nInstall Tesseract OCR or configure an AI provider with "
-        "a vision-capable model in Settings."
+        + "\n\nInstall Tesseract OCR or configure an AI/Mistral provider in Settings."
     )
 
 

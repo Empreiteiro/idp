@@ -33,6 +33,7 @@ REQUIRED_PYTHON_PACKAGES = [
     ("openai", "openai", False, "OpenAI API client"),
     ("anthropic", "anthropic", False, "Anthropic (Claude) API client"),
     ("google-genai", "google.genai", False, "Google Gemini API client"),
+    ("mistralai", "mistralai", False, "Mistral AI OCR client"),
     ("fastapi", "fastapi", True, "Web framework"),
     ("uvicorn", "uvicorn", True, "ASGI server"),
     ("sqlalchemy", "sqlalchemy", True, "Database ORM"),

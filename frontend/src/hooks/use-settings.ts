@@ -59,3 +59,12 @@ export function useTestOCR() {
     },
   });
 }
+
+export function useTestMistralOCR() {
+  return useMutation<ConnectionTestResult>({
+    mutationFn: async () => {
+      const { data } = await api.post("/api/settings/test-mistral-ocr");
+      return data;
+    },
+  });
+}
