@@ -111,6 +111,7 @@ export interface DataTableColumn {
 }
 
 export interface DataTableRow {
+  _extraction_id: number;
   _doc_id: number;
   _filename: string;
   _status: string;

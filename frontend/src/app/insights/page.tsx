@@ -245,6 +245,7 @@ export default function InsightsPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30 hover:bg-muted/30">
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider">ID</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider">Title</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider">Insight Template</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider">Mode</TableHead>
@@ -257,6 +258,9 @@ export default function InsightsPage() {
               <TableBody>
                 {insights.map((insight) => (
                   <TableRow key={insight.id} className="group hover:bg-muted/30">
+                    <TableCell className="text-muted-foreground text-xs font-mono">
+                      {insight.id}
+                    </TableCell>
                     <TableCell>
                       <Link
                         href={`/insights/${insight.id}`}
