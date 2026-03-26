@@ -15,6 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { PageHeader } from "@/components/layout/page-header";
 import { Upload, FileText, Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -65,23 +66,21 @@ export default function NewTemplatePage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <div className="flex items-center gap-3">
-        <Link href="/templates">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold">New Template</h1>
-          <p className="text-muted-foreground">
-            Upload an example document to auto-detect extractable fields
-          </p>
-        </div>
-      </div>
+    <div className="mx-auto max-w-2xl space-y-8">
+      <PageHeader
+        title="New Template"
+        description="Upload an example document to auto-detect extractable fields"
+        actions={
+          <Link href="/templates">
+            <Button variant="ghost" size="icon" className="rounded-xl">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+        }
+      />
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <Card>
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <Card className="synapse-shadow border-border/50 rounded-2xl">
           <CardHeader>
             <CardTitle>Template Info</CardTitle>
           </CardHeader>
@@ -109,7 +108,7 @@ export default function NewTemplatePage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="synapse-shadow border-border/50 rounded-2xl">
           <CardHeader>
             <CardTitle>Example Document</CardTitle>
             <CardDescription>
@@ -142,6 +141,7 @@ export default function NewTemplatePage() {
                     type="button"
                     variant="outline"
                     size="sm"
+                    className="rounded-xl"
                     onClick={(e) => {
                       e.stopPropagation();
                       setFile(null);
@@ -169,13 +169,13 @@ export default function NewTemplatePage() {
 
         <div className="flex gap-3">
           <Link href="/templates" className="flex-1">
-            <Button variant="outline" className="w-full" type="button">
+            <Button variant="outline" className="w-full rounded-xl" type="button">
               Cancel
             </Button>
           </Link>
           <Button
             type="submit"
-            className="flex-1"
+            className="flex-1 rounded-xl"
             disabled={createMutation.isPending || !name.trim()}
           >
             {createMutation.isPending ? (

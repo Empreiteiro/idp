@@ -26,6 +26,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { PageHeader } from "@/components/layout/page-header";
 
 /** Renders a cell value — arrays/objects get a clickable badge that opens a subtable popover. */
 function CellValue({ value }: { value: unknown }) {
@@ -132,27 +133,24 @@ export default function DataTablePage() {
   const totalPages = data ? Math.ceil(data.total / data.limit) : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href="/data">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="rounded-xl">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold">
-              {data?.template_name || "Loading..."}
-            </h1>
-            <p className="text-muted-foreground">
-              {data?.total ?? 0} records
-            </p>
-          </div>
+          <PageHeader
+            title={data?.template_name || "Loading..."}
+            description={`${data?.total ?? 0} records`}
+          />
         </div>
         <div className="flex gap-2">
           <Button
             variant="outline"
+            className="rounded-xl"
             onClick={() => exportTemplateCSV(templateId, reviewedOnly)}
           >
             <Download className="mr-2 h-4 w-4" />
@@ -173,13 +171,14 @@ export default function DataTablePage() {
               className="w-64 pl-9"
             />
           </div>
-          <Button type="submit" variant="secondary" size="sm">
+          <Button type="submit" variant="secondary" size="sm" className="rounded-xl">
             Search
           </Button>
           {search && (
             <Button
               variant="ghost"
               size="sm"
+              className="rounded-xl"
               onClick={() => {
                 setSearch("");
                 setSearchInput("");
@@ -208,7 +207,7 @@ export default function DataTablePage() {
       {isLoading ? (
         <Skeleton className="h-96 w-full" />
       ) : !data?.rows.length ? (
-        <Card>
+        <Card className="synapse-shadow border-border/50 rounded-2xl">
           <CardContent className="flex flex-col items-center gap-3 py-12">
             <p className="text-lg font-medium">No data found</p>
             <p className="text-sm text-muted-foreground">
@@ -219,19 +218,19 @@ export default function DataTablePage() {
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <Card className="synapse-shadow border-border/50 rounded-2xl">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-muted-foreground">
+                  <tr className="border-b bg-muted/30">
+                    <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       Document
                     </th>
                     {data.columns.map((col) => (
                       <th
                         key={col.field_name}
-                        className="whitespace-nowrap px-4 py-3 text-left font-medium text-muted-foreground"
+                        className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground"
                       >
                         {col.field_label}
                         <span className="ml-1 text-[10px] text-muted-foreground/60">
@@ -239,10 +238,10 @@ export default function DataTablePage() {
                         </span>
                       </th>
                     ))}
-                    <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-muted-foreground">
+                    <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       Conf.
                     </th>
-                    <th className="whitespace-nowrap px-4 py-3 text-left font-medium text-muted-foreground">
+                    <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       Status
                     </th>
                   </tr>
@@ -284,13 +283,13 @@ export default function DataTablePage() {
                         {row._is_reviewed ? (
                           <Badge
                             variant="outline"
-                            className="gap-1 text-green-600 border-green-200"
+                            className="gap-1 rounded-full text-green-600 border-green-200"
                           >
                             <CheckCircle className="h-3 w-3" />
                             Reviewed
                           </Badge>
                         ) : (
-                          <Badge variant="secondary">Pending</Badge>
+                          <Badge variant="secondary" className="rounded-full">Pending</Badge>
                         )}
                       </td>
                     </tr>
@@ -310,6 +309,7 @@ export default function DataTablePage() {
                   <Button
                     variant="outline"
                     size="sm"
+                    className="rounded-xl"
                     disabled={page <= 1}
                     onClick={() => setPage((p) => p - 1)}
                   >
@@ -321,6 +321,7 @@ export default function DataTablePage() {
                   <Button
                     variant="outline"
                     size="sm"
+                    className="rounded-xl"
                     disabled={page >= totalPages}
                     onClick={() => setPage((p) => p + 1)}
                   >

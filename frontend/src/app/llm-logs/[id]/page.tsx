@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/layout/page-header";
 
 const typeLabels: Record<string, string> = {
   extraction: "Extraction",
@@ -52,7 +53,7 @@ function CodeBlock({ title, content }: { title: string; content: string | null }
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium">{title}</h3>
-        <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={handleCopy}>
+        <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs rounded-xl" onClick={handleCopy}>
           <Copy className="h-3 w-3" />
           Copy
         </Button>
@@ -89,7 +90,7 @@ export default function LLMLogDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-8">
         <Skeleton className="h-10 w-64" />
         <div className="grid gap-4 md:grid-cols-4">
           {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20" />)}
@@ -110,33 +111,35 @@ export default function LLMLogDetailPage() {
     : "—";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Link href="/llm-logs">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" className="rounded-xl">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
         <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold">Request #{log.id}</h1>
-            {log.status === "success" ? (
-              <Badge className="bg-green-100 text-green-700 gap-1">
-                <CheckCircle className="h-3 w-3" /> Success
-              </Badge>
-            ) : (
-              <Badge className="bg-red-100 text-red-700 gap-1">
-                <XCircle className="h-3 w-3" /> Error
-              </Badge>
-            )}
-            <Badge variant="secondary">
-              {typeLabels[log.request_type] || log.request_type}
-            </Badge>
-          </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            {new Date(log.created_at).toLocaleString()}
-          </p>
+          <PageHeader
+            title={`Request #${log.id}`}
+            description={new Date(log.created_at).toLocaleString()}
+            actions={
+              <div className="flex items-center gap-2">
+                {log.status === "success" ? (
+                  <Badge className="rounded-full bg-green-100 text-green-700 gap-1">
+                    <CheckCircle className="h-3 w-3" /> Success
+                  </Badge>
+                ) : (
+                  <Badge className="rounded-full bg-red-100 text-red-700 gap-1">
+                    <XCircle className="h-3 w-3" /> Error
+                  </Badge>
+                )}
+                <Badge variant="secondary" className="rounded-full">
+                  {typeLabels[log.request_type] || log.request_type}
+                </Badge>
+              </div>
+            }
+          />
         </div>
       </div>
 
@@ -211,7 +214,7 @@ export default function LLMLogDetailPage() {
       )}
 
       {/* Prompts & Response */}
-      <Card>
+      <Card className="synapse-shadow border-border/50 rounded-2xl">
         <CardHeader>
           <CardTitle className="text-sm">Request / Response Trace</CardTitle>
           <CardDescription>Full content of the AI provider call</CardDescription>

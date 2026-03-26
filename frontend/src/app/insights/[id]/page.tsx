@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/layout/page-header";
 
 const statusColors: Record<string, string> = {
   completed: "bg-green-100 text-green-800",
@@ -66,7 +67,7 @@ export default function InsightDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-8">
         <Skeleton className="h-10 w-64" />
         <Skeleton className="h-96 w-full" />
       </div>
@@ -80,25 +81,23 @@ export default function InsightDetailPage() {
   const meta = (insight.metadata || {}) as Record<string, string | number | null>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href="/insights">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="rounded-xl">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold">{insight.title}</h1>
-            <p className="text-muted-foreground">
-              {insight.insight_template_name || "Unknown template"} &middot;{" "}
-              {insight.analysis_mode === "consolidated"
+          <PageHeader
+            title={insight.title}
+            description={`${insight.insight_template_name || "Unknown template"} \u00b7 ${
+              insight.analysis_mode === "consolidated"
                 ? "Consolidated"
-                : "Individual"}{" "}
-              analysis
-            </p>
-          </div>
+                : "Individual"
+            } analysis`}
+          />
         </div>
         <div className="flex gap-2">
           <span
@@ -110,6 +109,7 @@ export default function InsightDetailPage() {
           </span>
           <Button
             variant="outline"
+            className="rounded-xl"
             onClick={handleRegenerate}
             disabled={regenerateMutation.isPending}
           >
@@ -120,7 +120,7 @@ export default function InsightDetailPage() {
             )}
             Regenerate
           </Button>
-          <Button variant="destructive" size="icon" onClick={handleDelete}>
+          <Button variant="destructive" size="icon" className="rounded-xl" onClick={handleDelete}>
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
@@ -131,7 +131,7 @@ export default function InsightDetailPage() {
         <div className="lg:col-span-3 space-y-6">
           {/* Error */}
           {insight.error_message && (
-            <Card className="border-red-200 bg-red-50">
+            <Card className="synapse-shadow border-border/50 rounded-2xl border-red-200 bg-red-50">
               <CardContent className="py-3">
                 <p className="text-sm text-red-800">{insight.error_message}</p>
               </CardContent>
@@ -140,7 +140,7 @@ export default function InsightDetailPage() {
 
           {/* Summary */}
           {insight.summary && (
-            <Card>
+            <Card className="synapse-shadow border-border/50 rounded-2xl">
               <CardHeader>
                 <CardTitle className="text-base">Executive Summary</CardTitle>
               </CardHeader>
@@ -154,7 +154,7 @@ export default function InsightDetailPage() {
 
           {/* Full Report */}
           {insight.content && (
-            <Card>
+            <Card className="synapse-shadow border-border/50 rounded-2xl">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <BarChart3 className="h-4 w-4" />
@@ -173,7 +173,7 @@ export default function InsightDetailPage() {
         {/* Sidebar */}
         <div className="space-y-4">
           {/* Metadata */}
-          <Card>
+          <Card className="synapse-shadow border-border/50 rounded-2xl">
             <CardHeader>
               <CardTitle className="text-sm">Generation Info</CardTitle>
             </CardHeader>
@@ -182,7 +182,7 @@ export default function InsightDetailPage() {
                 <div className="flex items-center gap-2 text-sm">
                   <Cpu className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">Provider:</span>
-                  <Badge variant="outline" className="text-xs">
+                  <Badge variant="outline" className="text-xs rounded-full">
                     {String(meta.provider)} / {String(meta.model || "")}
                   </Badge>
                 </div>
@@ -223,7 +223,7 @@ export default function InsightDetailPage() {
           </Card>
 
           {/* Documents */}
-          <Card>
+          <Card className="synapse-shadow border-border/50 rounded-2xl">
             <CardHeader>
               <CardTitle className="text-sm">
                 Documents ({insight.documents.length})

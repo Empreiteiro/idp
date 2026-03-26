@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/layout/page-header";
 
 const statusColors: Record<string, string> = {
   completed: "bg-green-100 text-green-800",
@@ -120,109 +121,107 @@ export default function InsightsPage() {
   const totalPages = Math.ceil(total / 20);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Document Insights</h1>
-          <p className="text-muted-foreground">
-            AI-generated analytical reports from your documents
-          </p>
-        </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger
-            render={
-              <Button>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Generate Insight
-              </Button>
-            }
-          />
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Generate Document Insight</DialogTitle>
-              <DialogDescription>
-                Select an insight template and documents to analyze
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-2">
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Insight Template *</label>
-                <Select
-                  value={selectedTemplateId}
-                  onValueChange={(val) => setSelectedTemplateId(val ?? "")}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select insight template" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {insightTemplates
-                      ?.filter((t) => t.is_active)
-                      .map((t) => (
-                        <SelectItem key={t.id} value={String(t.id)}>
-                          {t.name} ({t.template_name})
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Document IDs *</label>
-                <Input
-                  placeholder="e.g., 1, 2, 3"
-                  value={selectedDocIds}
-                  onChange={(e) => setSelectedDocIds(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Comma-separated document IDs (must have completed extractions)
-                </p>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Analysis Mode *</label>
-                <Select value={analysisMode} onValueChange={(val) => setAnalysisMode(val ?? "individual")}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="individual">
-                      Individual (one report per document)
-                    </SelectItem>
-                    <SelectItem value="consolidated">
-                      Consolidated (single report for all documents)
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium">
-                  Custom Instructions (optional)
-                </label>
-                <Textarea
-                  placeholder="Any additional guidance for the analysis..."
-                  value={customInstructions}
-                  onChange={(e) => setCustomInstructions(e.target.value)}
-                  rows={3}
-                />
-              </div>
-
-              <Button
-                onClick={handleGenerate}
-                disabled={generateMutation.isPending}
-                className="w-full"
-              >
-                {generateMutation.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
+    <div className="space-y-8">
+      <PageHeader
+        title="Document Insights"
+        description="AI-generated analytical reports from your documents"
+        actions={
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger
+              render={
+                <Button className="rounded-xl">
                   <Sparkles className="mr-2 h-4 w-4" />
-                )}
-                Generate
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+                  Generate Insight
+                </Button>
+              }
+            />
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Generate Document Insight</DialogTitle>
+                <DialogDescription>
+                  Select an insight template and documents to analyze
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Insight Template *</label>
+                  <Select
+                    value={selectedTemplateId}
+                    onValueChange={(val) => setSelectedTemplateId(val ?? "")}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select insight template" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {insightTemplates
+                        ?.filter((t) => t.is_active)
+                        .map((t) => (
+                          <SelectItem key={t.id} value={String(t.id)}>
+                            {t.name} ({t.template_name})
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Document IDs *</label>
+                  <Input
+                    placeholder="e.g., 1, 2, 3"
+                    value={selectedDocIds}
+                    onChange={(e) => setSelectedDocIds(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Comma-separated document IDs (must have completed extractions)
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Analysis Mode *</label>
+                  <Select value={analysisMode} onValueChange={(val) => setAnalysisMode(val ?? "individual")}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="individual">
+                        Individual (one report per document)
+                      </SelectItem>
+                      <SelectItem value="consolidated">
+                        Consolidated (single report for all documents)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">
+                    Custom Instructions (optional)
+                  </label>
+                  <Textarea
+                    placeholder="Any additional guidance for the analysis..."
+                    value={customInstructions}
+                    onChange={(e) => setCustomInstructions(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+
+                <Button
+                  onClick={handleGenerate}
+                  disabled={generateMutation.isPending}
+                  className="w-full rounded-xl"
+                >
+                  {generateMutation.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-2 h-4 w-4" />
+                  )}
+                  Generate
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
       {isLoading ? (
         <div className="space-y-3">
@@ -231,7 +230,7 @@ export default function InsightsPage() {
           ))}
         </div>
       ) : insights.length === 0 ? (
-        <Card>
+        <Card className="synapse-shadow border-border/50 rounded-2xl">
           <CardContent className="flex flex-col items-center gap-3 py-12">
             <BarChart3 className="h-12 w-12 text-muted-foreground" />
             <p className="text-lg font-medium">No insights yet</p>
@@ -245,19 +244,19 @@ export default function InsightsPage() {
           <div className="rounded-lg border">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead>Title</TableHead>
-                  <TableHead>Insight Template</TableHead>
-                  <TableHead>Mode</TableHead>
-                  <TableHead className="text-center">Documents</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
+                <TableRow className="bg-muted/30 hover:bg-muted/30">
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider">Title</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider">Insight Template</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider">Mode</TableHead>
+                  <TableHead className="text-center text-xs font-semibold uppercase tracking-wider">Documents</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider">Created</TableHead>
                   <TableHead className="w-[70px]" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {insights.map((insight) => (
-                  <TableRow key={insight.id} className="group">
+                  <TableRow key={insight.id} className="group hover:bg-muted/30">
                     <TableCell>
                       <Link
                         href={`/insights/${insight.id}`}
@@ -272,14 +271,14 @@ export default function InsightsPage() {
                       {insight.insight_template_name || "\u2014"}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">
+                      <Badge variant="outline" className="rounded-full">
                         {insight.analysis_mode === "consolidated"
                           ? "Consolidated"
                           : "Individual"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant="secondary" className="gap-1">
+                      <Badge variant="secondary" className="gap-1 rounded-full">
                         <FileText className="h-3 w-3" />
                         {insight.document_count}
                       </Badge>
@@ -300,7 +299,7 @@ export default function InsightsPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="h-8 w-8 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"
                         onClick={(e) =>
                           handleDelete(e, insight.id, insight.title)
                         }
@@ -319,6 +318,7 @@ export default function InsightsPage() {
               <Button
                 variant="outline"
                 size="sm"
+                className="rounded-xl"
                 disabled={page <= 1}
                 onClick={() => setPage(page - 1)}
               >
@@ -330,6 +330,7 @@ export default function InsightsPage() {
               <Button
                 variant="outline"
                 size="sm"
+                className="rounded-xl"
                 disabled={page >= totalPages}
                 onClick={() => setPage(page + 1)}
               >

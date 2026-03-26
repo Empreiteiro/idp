@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { validateApiKey } from "@/lib/schemas";
+import { PageHeader } from "@/components/layout/page-header";
 
 const providerModels: Record<string, string[]> = {
   openai: ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1"],
@@ -125,17 +126,15 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">
-          Configure AI provider and OCR settings
-        </p>
-      </div>
+    <div className="mx-auto max-w-2xl space-y-8">
+      <PageHeader
+        title="Settings"
+        description="Configure AI provider and OCR settings"
+      />
 
       {/* System Info */}
       {sysInfo && (
-        <Card>
+        <Card className="synapse-shadow border-border/50 rounded-2xl">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm">
               <Package className="h-4 w-4" />
@@ -148,7 +147,7 @@ export default function SettingsPage() {
                 <Badge
                   key={lib}
                   variant={available ? "default" : "secondary"}
-                  className={`gap-1 ${available ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-red-100 text-red-600 hover:bg-red-100"}`}
+                  className={`rounded-full gap-1 ${available ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-red-100 text-red-600 hover:bg-red-100"}`}
                 >
                   {available ? (
                     <CheckCircle className="h-3 w-3" />
@@ -165,7 +164,7 @@ export default function SettingsPage() {
 
       {/* Dependencies Validation */}
       {depsValidation && (
-        <Card>
+        <Card className="synapse-shadow border-border/50 rounded-2xl">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm">
               {depsValidation.ok ? (
@@ -187,7 +186,7 @@ export default function SettingsPage() {
                   <Badge
                     key={dep.name}
                     variant={dep.installed ? "default" : "secondary"}
-                    className={`gap-1 ${
+                    className={`rounded-full gap-1 ${
                       dep.installed
                         ? "bg-green-100 text-green-700 hover:bg-green-100"
                         : dep.required
@@ -216,7 +215,7 @@ export default function SettingsPage() {
                   <Badge
                     key={dep.name}
                     variant={dep.installed ? "default" : "secondary"}
-                    className={`gap-1 ${
+                    className={`rounded-full gap-1 ${
                       dep.installed
                         ? "bg-green-100 text-green-700 hover:bg-green-100"
                         : "bg-amber-100 text-amber-700 hover:bg-amber-100"
@@ -241,7 +240,7 @@ export default function SettingsPage() {
       )}
 
       {/* AI Provider */}
-      <Card>
+      <Card className="synapse-shadow border-border/50 rounded-2xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5" />
@@ -318,7 +317,7 @@ export default function SettingsPage() {
             variant="outline"
             onClick={handleTestAI}
             disabled={testAIMutation.isPending}
-            className="w-full"
+            className="w-full rounded-xl"
           >
             {testAIMutation.isPending ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -348,7 +347,7 @@ export default function SettingsPage() {
       </Card>
 
       {/* OCR */}
-      <Card>
+      <Card className="synapse-shadow border-border/50 rounded-2xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ScanLine className="h-5 w-5" />
@@ -389,7 +388,7 @@ export default function SettingsPage() {
             variant="outline"
             onClick={handleTestOCR}
             disabled={testOCRMutation.isPending}
-            className="w-full"
+            className="w-full rounded-xl"
           >
             {testOCRMutation.isPending ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -419,7 +418,7 @@ export default function SettingsPage() {
       </Card>
 
       <Button
-        className="w-full"
+        className="w-full rounded-xl"
         onClick={handleSaveAll}
         disabled={updateMutation.isPending}
       >
