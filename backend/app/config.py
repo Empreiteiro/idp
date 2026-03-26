@@ -9,8 +9,10 @@ class Settings(BaseSettings):
     ai_model: str = "gpt-4o-mini"
 
     # OCR
+    ocr_provider: str = "default"  # "default" or "mistral"
     tesseract_path: str = ""
     poppler_path: str = ""
+    mistral_api_key: str = ""
 
     # Database
     database_url: str = "sqlite:///./data/idp.db"

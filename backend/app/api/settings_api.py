@@ -10,7 +10,7 @@ from app.utils.encryption import encrypt_value, decrypt_value
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
-ALLOWED_KEYS = {"ai_provider", "ai_api_key", "ai_model", "tesseract_path", "poppler_path"}
+ALLOWED_KEYS = {"ai_provider", "ai_api_key", "ai_model", "tesseract_path", "poppler_path", "ocr_provider", "mistral_api_key"}
 
 
 @router.post("/test-ai")
@@ -55,6 +55,33 @@ def test_ocr_connection(request: Request, db: Session = Depends(get_db)):
         return {"status": "error", "message": f"Tesseract not found: {str(e)}"}
 
 
+@router.post("/test-mistral-ocr")
+@limiter.limit("5/minute")
+def test_mistral_ocr(request: Request, db: Session = Depends(get_db)):
+    """Test if Mistral OCR API is accessible."""
+    try:
+        from mistralai import Mistral
+
+        row = db.query(AppSettings).filter(AppSettings.key == "mistral_api_key").first()
+        if not row or not row.value:
+            return {"status": "error", "message": "Mistral API key not configured"}
+
+        api_key = decrypt_value(row.value)
+        client = Mistral(api_key=api_key)
+
+        # List models to verify API key works
+        models = client.models.list()
+        ocr_models = [m.id for m in models.data if "ocr" in m.id.lower()] if models.data else []
+
+        if ocr_models:
+            return {"status": "ok", "message": f"Mistral OCR connected. Available models: {', '.join(ocr_models)}"}
+        return {"status": "ok", "message": "Mistral API connected (OCR model available via mistral-ocr-latest)"}
+    except ImportError:
+        return {"status": "error", "message": "mistralai package not installed. Run: pip install mistralai"}
+    except Exception as e:
+        return {"status": "error", "message": f"Mistral connection failed: {str(e)}"}
+
+
 @router.get("/validate-deps")
 def validate_deps():
     """Validate that all required packages for document extraction are installed."""
@@ -77,6 +104,7 @@ def get_system_info(db: Session = Depends(get_db)):
         "openai": False,
         "anthropic": False,
         "google_genai": False,
+        "mistralai": False,
     }
 
     try:
@@ -126,6 +154,12 @@ def get_system_info(db: Session = Depends(get_db)):
     except ImportError:
         pass
 
+    try:
+        import mistralai
+        info["mistralai"] = True
+    except ImportError:
+        pass
+
     return {"libraries": info}
 
 
@@ -143,7 +177,7 @@ def _get_all_settings(db: Session) -> dict[str, str]:
     result = {}
     for r in rows:
         val = r.value
-        if r.key == "ai_api_key":
+        if r.key in ("ai_api_key", "mistral_api_key"):
             val = decrypt_value(val)
             if len(val) > 8:
                 val = val[:4] + "..." + val[-4:]
@@ -161,7 +195,7 @@ def update_setting(data: SettingUpdate, db: Session = Depends(get_db)):
     if data.key not in ALLOWED_KEYS:
         raise HTTPException(400, f"Unknown setting: {data.key}")
 
-    value = encrypt_value(data.value) if data.key == "ai_api_key" else data.value
+    value = encrypt_value(data.value) if data.key in ("ai_api_key", "mistral_api_key") else data.value
 
     setting = db.query(AppSettings).filter(AppSettings.key == data.key).first()
     if setting:
@@ -179,7 +213,7 @@ def update_settings_bulk(settings: dict[str, str], db: Session = Depends(get_db)
     for key, value in settings.items():
         if key not in ALLOWED_KEYS:
             continue
-        store_value = encrypt_value(value) if key == "ai_api_key" else value
+        store_value = encrypt_value(value) if key in ("ai_api_key", "mistral_api_key") else value
         setting = db.query(AppSettings).filter(AppSettings.key == key).first()
         if setting:
             setting.value = store_value

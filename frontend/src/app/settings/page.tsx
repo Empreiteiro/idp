@@ -8,6 +8,7 @@ import {
   useValidateDeps,
   useTestAI,
   useTestOCR,
+  useTestMistralOCR,
 } from "@/hooks/use-settings";
 import {
   Card,
@@ -62,6 +63,7 @@ export default function SettingsPage() {
   const { data: depsValidation, isLoading: depsLoading } = useValidateDeps();
   const testAIMutation = useTestAI();
   const testOCRMutation = useTestOCR();
+  const testMistralMutation = useTestMistralOCR();
 
   const [provider, setProvider] = useState("openai");
   const [apiKey, setApiKey] = useState("");
@@ -70,6 +72,9 @@ export default function SettingsPage() {
   const [popperPath, setPopperPath] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [apiKeyError, setApiKeyError] = useState("");
+  const [ocrProvider, setOcrProvider] = useState("default");
+  const [mistralApiKey, setMistralApiKey] = useState("");
+  const [showMistralKey, setShowMistralKey] = useState(false);
 
   useEffect(() => {
     if (data?.settings) {
@@ -78,6 +83,8 @@ export default function SettingsPage() {
       setModel(data.settings.ai_model || "");
       setTesseractPath(data.settings.tesseract_path || "");
       setPopperPath(data.settings.poppler_path || "");
+      setOcrProvider(data.settings.ocr_provider || "default");
+      setMistralApiKey(data.settings.mistral_api_key || "");
     }
   }, [data]);
 
@@ -97,6 +104,8 @@ export default function SettingsPage() {
     saveSetting("ai_model", model);
     if (tesseractPath) saveSetting("tesseract_path", tesseractPath);
     if (popperPath) saveSetting("poppler_path", popperPath);
+    saveSetting("ocr_provider", ocrProvider);
+    if (mistralApiKey && !mistralApiKey.includes("...")) saveSetting("mistral_api_key", mistralApiKey);
   };
 
   const handleTestAI = () => {
@@ -109,6 +118,19 @@ export default function SettingsPage() {
         }
       },
       onError: () => toast.error("Connection test failed"),
+    });
+  };
+
+  const handleTestMistral = () => {
+    testMistralMutation.mutate(undefined, {
+      onSuccess: (result) => {
+        if (result.status === "ok") {
+          toast.success(result.message);
+        } else {
+          toast.error(result.message);
+        }
+      },
+      onError: () => toast.error("Mistral OCR test failed"),
     });
   };
 
@@ -346,16 +368,120 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
+      {/* OCR Provider */}
+      <Card className="synapse-shadow border-border/50 rounded-2xl">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ScanLine className="h-5 w-5" />
+            OCR Provider
+          </CardTitle>
+          <CardDescription>
+            Choose the OCR engine for document pre-processing. Mistral OCR uses
+            a dedicated API for high-quality text extraction from PDFs and images.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Provider</Label>
+            <Select value={ocrProvider} onValueChange={(val) => setOcrProvider(val ?? "default")}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">Default (pdfplumber + Tesseract + AI Vision)</SelectItem>
+                <SelectItem value="mistral">Mistral OCR</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {ocrProvider === "mistral" && (
+            <>
+              <div className="space-y-2">
+                <Label>Mistral API Key</Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      type={showMistralKey ? "text" : "password"}
+                      placeholder="Enter your Mistral API key"
+                      value={mistralApiKey}
+                      onChange={(e) => setMistralApiKey(e.target.value)}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                      onClick={() => setShowMistralKey(!showMistralKey)}
+                      type="button"
+                      aria-label={showMistralKey ? "Hide API key" : "Show API key"}
+                    >
+                      {showMistralKey ? (
+                        <EyeOff className="h-3.5 w-3.5" />
+                      ) : (
+                        <Eye className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Get your API key from{" "}
+                  <a href="https://console.mistral.ai/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                    console.mistral.ai
+                  </a>
+                </p>
+              </div>
+
+              <Button
+                variant="outline"
+                onClick={handleTestMistral}
+                disabled={testMistralMutation.isPending}
+                className="w-full rounded-xl"
+              >
+                {testMistralMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Zap className="mr-2 h-4 w-4" />
+                )}
+                Test Mistral OCR
+              </Button>
+
+              {testMistralMutation.data && (
+                <div
+                  className={`flex items-center gap-2 rounded-lg border p-3 text-sm ${
+                    testMistralMutation.data.status === "ok"
+                      ? "border-green-200 bg-green-50 text-green-800 dark:bg-green-950 dark:text-green-200 dark:border-green-800"
+                      : "border-red-200 bg-red-50 text-red-800 dark:bg-red-950 dark:text-red-200 dark:border-red-800"
+                  }`}
+                >
+                  {testMistralMutation.data.status === "ok" ? (
+                    <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                  ) : (
+                    <XCircle className="h-4 w-4 flex-shrink-0" />
+                  )}
+                  {testMistralMutation.data.message}
+                </div>
+              )}
+            </>
+          )}
+
+          {ocrProvider === "default" && (
+            <p className="text-xs text-muted-foreground rounded-lg bg-muted p-3">
+              Default mode uses pdfplumber for digital PDFs, Tesseract for scanned documents,
+              and your configured AI provider as a final fallback. Configure Tesseract paths below if needed.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* OCR */}
       <Card className="synapse-shadow border-border/50 rounded-2xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ScanLine className="h-5 w-5" />
-            OCR Configuration
+            OCR Configuration (Tesseract)
           </CardTitle>
           <CardDescription>
-            Paths for Tesseract and Poppler. pdfplumber is used as primary
-            fallback for text-based PDFs.
+            Paths for Tesseract and Poppler. Used as fallback when Mistral OCR is
+            not configured, or as primary engine in default mode.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
