@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useDashboardStats, useRecentDocuments } from "@/hooks/use-dashboard";
 import { useDataSummary } from "@/hooks/use-data-tables";
 import {
@@ -12,6 +13,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   FileText,
   FolderOpen,
@@ -27,6 +36,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatusDot } from "@/components/layout/status-dot";
 import { FolderCard } from "@/components/layout/folder-card";
+import { ViewToggle } from "@/components/layout/view-toggle";
 
 const statusLabels: Record<string, string> = {
   completed: "Completed",
@@ -40,6 +50,7 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function DashboardPage() {
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: recent, isLoading: recentLoading } = useRecentDocuments(8);
   const { data: dataSummary } = useDataSummary();
@@ -210,65 +221,78 @@ export default function DashboardPage() {
           </Card>
         )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Recent Documents */}
-        <Card className="synapse-shadow border-border/50 rounded-2xl">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-sm font-semibold">
-                Recent Documents
-              </CardTitle>
-              <CardDescription>Latest processed documents</CardDescription>
-            </div>
-            <Link href="/documents">
-              <Button variant="ghost" size="sm" className="gap-1 text-xs">
-                View all
-                <ArrowRight className="h-3 w-3" />
-              </Button>
-            </Link>
-          </CardHeader>
-          <CardContent>
-            {recentLoading ? (
-              <div className="space-y-3">
-                {[...Array(5)].map((_, i) => (
-                  <Skeleton key={i} className="h-12 w-full rounded-xl" />
-                ))}
-              </div>
-            ) : !recent?.length ? (
-              <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
-                <FileText className="h-10 w-10" />
-                <p>No documents yet</p>
-                <Link
-                  href="/documents/upload"
-                  className="text-sm text-primary hover:underline"
-                >
-                  Upload your first document
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-1.5">
+      {/* Recent Documents with List/Grid toggle */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-4">
+            <h2 className="text-sm font-semibold">Recent Documents</h2>
+            <ViewToggle value={viewMode} onChange={setViewMode} />
+          </div>
+          <Link href="/documents">
+            <Button variant="ghost" size="sm" className="gap-1 text-xs">
+              View all
+              <ArrowRight className="h-3 w-3" />
+            </Button>
+          </Link>
+        </div>
+        {recentLoading ? (
+          <div className="space-y-3">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full rounded-xl" />
+            ))}
+          </div>
+        ) : !recent?.length ? (
+          <Card className="synapse-shadow border-border/50 rounded-2xl">
+            <CardContent className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
+              <FileText className="h-10 w-10" />
+              <p>No documents yet</p>
+              <Link
+                href="/documents/upload"
+                className="text-sm text-primary hover:underline"
+              >
+                Upload your first document
+              </Link>
+            </CardContent>
+          </Card>
+        ) : viewMode === "list" ? (
+          <Card className="synapse-shadow border-border/50 rounded-2xl overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30 hover:bg-muted/30">
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider">
+                    File name
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider">
+                    Template
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider">
+                    Status
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider">
+                    Date added
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {recent.map((doc) => (
-                  <Link
-                    key={doc.id}
-                    href={`/documents/${doc.id}`}
-                    className="flex items-center justify-between rounded-xl p-3 transition-colors hover:bg-muted/50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/5">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium line-clamp-1">
+                  <TableRow key={doc.id} className="group hover:bg-muted/30">
+                    <TableCell>
+                      <Link
+                        href={`/documents/${doc.id}`}
+                        className="flex items-center gap-2.5 font-medium hover:text-primary transition-colors"
+                      >
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/5 shrink-0">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <span className="max-w-[280px] truncate">
                           {doc.filename}
-                        </p>
-                        {doc.template_name && (
-                          <p className="text-xs text-muted-foreground">
-                            {doc.template_name}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
+                        </span>
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {doc.template_name || "---"}
+                    </TableCell>
+                    <TableCell>
                       <Badge
                         variant={
                           doc.status === "completed"
@@ -285,14 +309,64 @@ export default function DashboardPage() {
                         ) : null}
                         {statusLabels[doc.status] || doc.status}
                       </Badge>
-                    </div>
-                  </Link>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {new Date(doc.created_at).toLocaleDateString("en-US", {
+                        weekday: "short",
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              </TableBody>
+            </Table>
+          </Card>
+        ) : (
+          <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {recent.map((doc) => (
+              <Link
+                key={doc.id}
+                href={`/documents/${doc.id}`}
+                className="group flex flex-col rounded-2xl bg-card p-5 synapse-shadow border border-border/50 hover:synapse-shadow-md transition-all duration-200"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/5">
+                    <FileText className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <StatusDot status={doc.status} />
+                </div>
+                <p className="text-sm font-medium line-clamp-2 mb-1">
+                  {doc.filename}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {doc.template_name || "Unclassified"}
+                </p>
+                <div className="mt-auto pt-3 flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(doc.created_at).toLocaleDateString()}
+                  </span>
+                  <Badge
+                    variant={
+                      doc.status === "completed"
+                        ? "default"
+                        : doc.status === "failed"
+                          ? "destructive"
+                          : "secondary"
+                    }
+                    className="text-[10px] rounded-full"
+                  >
+                    {statusLabels[doc.status] || doc.status}
+                  </Badge>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
 
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* Data Summary */}
         <Card className="synapse-shadow border-border/50 rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between">

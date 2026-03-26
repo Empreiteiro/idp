@@ -80,9 +80,9 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="flex h-screen w-[272px] flex-col border-r border-sidebar-border bg-sidebar">
+    <aside className="flex w-[272px] flex-col rounded-2xl bg-sidebar synapse-shadow border border-border/40">
       {/* Header */}
-      <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-5">
+      <div className="flex h-16 items-center gap-3 border-b border-border/40 px-5">
         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
           <FileCheck className="h-5 w-5 text-primary" />
         </div>
@@ -217,7 +217,7 @@ export default function Sidebar() {
       </ScrollArea>
 
       {/* Footer */}
-      <div className="flex items-center justify-between border-t border-sidebar-border px-4 py-3">
+      <div className="flex items-center justify-between border-t border-border/40 px-4 py-3">
         <p className="text-[11px] text-muted-foreground">IDP v1.0</p>
         <ThemeToggle />
       </div>
