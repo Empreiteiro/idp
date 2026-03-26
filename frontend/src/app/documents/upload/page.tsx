@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useDropzone } from "react-dropzone";
 import { useUploadDocument } from "@/hooks/use-documents";
@@ -28,6 +28,7 @@ import {
   ArrowLeft,
   X,
   Wand2,
+  FolderOpen,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -40,9 +41,28 @@ export default function UploadPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [templateId, setTemplateId] = useState<string>("auto");
 
+  const folderInputRef = useRef<HTMLInputElement>(null);
+
+  const acceptedExtensions = [".pdf", ".png", ".jpg", ".jpeg", ".tiff", ".bmp", ".webp"];
+
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setFiles((prev) => [...prev, ...acceptedFiles]);
   }, []);
+
+  const handleFolderSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const folderFiles = Array.from(e.target.files || []).filter((f) =>
+        acceptedExtensions.some((ext) => f.name.toLowerCase().endsWith(ext))
+      );
+      if (folderFiles.length === 0) {
+        toast.info("No supported files found in the selected folder");
+        return;
+      }
+      setFiles((prev) => [...prev, ...folderFiles]);
+      e.target.value = "";
+    },
+    []
+  );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -162,6 +182,25 @@ export default function UploadPage() {
               </p>
             </div>
           </div>
+
+          <input
+            ref={folderInputRef}
+            type="file"
+            className="hidden"
+            /* @ts-expect-error webkitdirectory is non-standard but widely supported */
+            webkitdirectory=""
+            multiple
+            onChange={handleFolderSelect}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full rounded-xl"
+            onClick={() => folderInputRef.current?.click()}
+          >
+            <FolderOpen className="mr-2 h-4 w-4" />
+            Select Folder
+          </Button>
 
           {files.length > 0 && (
             <div className="space-y-2">
