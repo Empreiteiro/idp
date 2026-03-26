@@ -41,7 +41,7 @@ export default function RootLayout({
               <Sidebar />
               <main
                 id="main-content"
-                className="flex-1 overflow-y-auto bg-card rounded-l-2xl synapse-shadow"
+                className="flex-1 overflow-y-auto bg-card mt-3 mr-3 mb-3 rounded-2xl synapse-shadow"
               >
                 <div className="px-8 pt-6">
                   <Breadcrumb />
