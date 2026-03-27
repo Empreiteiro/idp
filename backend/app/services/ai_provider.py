@@ -218,10 +218,24 @@ class GeminiProvider(AIProvider):
 # Helpers
 # ---------------------------------------------------------------------------
 def get_ai_settings(db: Session) -> tuple[str, str, str]:
-    """Get AI settings from database, fallback to env."""
+    """Get AI settings from the default provider config, fallback to legacy settings & env."""
     from app.config import settings as env_settings
     from app.utils.encryption import decrypt_value
+    from app.models.settings import ProviderConfig
 
+    # Try new ProviderConfig table first
+    default_provider = db.query(ProviderConfig).filter(
+        ProviderConfig.kind == "ai",
+        ProviderConfig.is_default == True,
+        ProviderConfig.is_active == True,
+    ).first()
+
+    if default_provider and default_provider.api_key:
+        api_key = decrypt_value(default_provider.api_key)
+        if api_key:
+            return default_provider.provider_name, api_key, default_provider.model
+
+    # Fallback to legacy AppSettings / env
     rows = {r.key: r.value for r in db.query(AppSettings).all()}
     provider = rows.get("ai_provider") or env_settings.ai_provider
     api_key = rows.get("ai_api_key") or env_settings.ai_api_key
