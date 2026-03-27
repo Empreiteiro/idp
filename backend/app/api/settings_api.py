@@ -30,9 +30,8 @@ DEFAULT_PROVIDERS = [
     {"kind": "ai", "provider_name": "openai", "display_name": "OpenAI (GPT)", "model": "gpt-4o-mini", "is_default": True},
     {"kind": "ai", "provider_name": "claude", "display_name": "Anthropic (Claude)", "model": "claude-sonnet-4-20250514", "is_default": False},
     {"kind": "ai", "provider_name": "gemini", "display_name": "Google (Gemini)", "model": "gemini-2.0-flash", "is_default": False},
-    # OCR providers
-    {"kind": "ocr", "provider_name": "tesseract", "display_name": "Tesseract OCR", "model": "", "is_default": True},
-    {"kind": "ocr", "provider_name": "mistral", "display_name": "Mistral OCR", "model": "mistral-ocr-latest", "is_default": False},
+    # OCR providers (Tesseract is a system dependency — managed in /dependencies)
+    {"kind": "ocr", "provider_name": "mistral", "display_name": "Mistral OCR", "model": "mistral-ocr-latest", "is_default": True},
 ]
 
 
@@ -254,20 +253,8 @@ async def _test_ai_provider(provider_name: str, api_key: str, model: str) -> dic
 
 
 def _test_ocr_provider(provider_name: str, api_key: str, extra_config_json: str, db: Session) -> dict:
-    """Test an OCR provider."""
-    if provider_name == "tesseract":
-        try:
-            import pytesseract
-            extra = json.loads(extra_config_json) if extra_config_json else {}
-            tess_path = extra.get("tesseract_path", "")
-            if tess_path:
-                pytesseract.pytesseract.tesseract_cmd = tess_path
-            version = pytesseract.get_tesseract_version()
-            return {"status": "ok", "message": f"Tesseract v{version} found"}
-        except Exception as e:
-            return {"status": "error", "message": f"Tesseract not found: {str(e)}"}
-
-    elif provider_name == "mistral":
+    """Test an OCR provider connection."""
+    if provider_name == "mistral":
         if not api_key:
             return {"status": "error", "message": "Mistral API key not configured"}
         try:
