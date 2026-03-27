@@ -149,3 +149,45 @@ export function useDeleteField() {
       qc.invalidateQueries({ queryKey: ["template", vars.templateId] }),
   });
 }
+
+export function useAddExampleFiles() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      templateId,
+      formData,
+    }: {
+      templateId: number;
+      formData: FormData;
+    }) => {
+      const { data } = await api.post(
+        `/api/templates/${templateId}/example-files`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+      return data as Template;
+    },
+    onSuccess: (_, vars) =>
+      qc.invalidateQueries({ queryKey: ["template", vars.templateId] }),
+  });
+}
+
+export function useRemoveExampleFile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      templateId,
+      fileIndex,
+    }: {
+      templateId: number;
+      fileIndex: number;
+    }) => {
+      const { data } = await api.delete(
+        `/api/templates/${templateId}/example-files/${fileIndex}`
+      );
+      return data as Template;
+    },
+    onSuccess: (_, vars) =>
+      qc.invalidateQueries({ queryKey: ["template", vars.templateId] }),
+  });
+}

@@ -61,7 +61,7 @@ class TemplateResponse(BaseModel):
     id: int
     name: str
     description: str | None
-    example_file: str | None
+    example_files: list[str] = []
     created_at: datetime
     updated_at: datetime
     fields: list[FieldResponse] = []

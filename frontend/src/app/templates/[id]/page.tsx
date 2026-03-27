@@ -1,13 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useCallback } from "react";
+import { useParams } from "next/navigation";
+import { useDropzone } from "react-dropzone";
 import {
   useTemplate,
   useSuggestFields,
   useAddField,
   useDeleteField,
   useUpdateField,
+  useAddExampleFiles,
+  useRemoveExampleFile,
 } from "@/hooks/use-templates";
 import {
   Card,
@@ -37,6 +40,8 @@ import {
   Wand2,
   FileText,
   Table2,
+  Upload,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -72,11 +77,40 @@ export default function TemplateDetailPage() {
   const addFieldMutation = useAddField();
   const deleteFieldMutation = useDeleteField();
   const updateFieldMutation = useUpdateField();
+  const addFilesMutation = useAddExampleFiles();
+  const removeFileMutation = useRemoveExampleFile();
 
   const [newFieldName, setNewFieldName] = useState("");
   const [newFieldLabel, setNewFieldLabel] = useState("");
   const [newFieldType, setNewFieldType] = useState("text");
   const [newFieldColumns, setNewFieldColumns] = useState<NewColumn[]>([]);
+
+  const onDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      if (!acceptedFiles.length) return;
+      const formData = new FormData();
+      acceptedFiles.forEach((f) => formData.append("files", f));
+      addFilesMutation.mutate(
+        { templateId: id, formData },
+        {
+          onSuccess: () =>
+            toast.success(
+              `${acceptedFiles.length} file${acceptedFiles.length > 1 ? "s" : ""} added`
+            ),
+          onError: () => toast.error("Failed to add files"),
+        }
+      );
+    },
+    [id, addFilesMutation]
+  );
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      "application/pdf": [".pdf"],
+      "image/*": [".png", ".jpg", ".jpeg", ".tiff", ".bmp", ".webp"],
+    },
+  });
 
   const handleAddField = () => {
     if (!newFieldName.trim() || !newFieldLabel.trim()) {
@@ -87,7 +121,6 @@ export default function TemplateDetailPage() {
       toast.error("Table fields require at least one column");
       return;
     }
-    // Validate column names
     if (newFieldType === "table") {
       const emptyCol = newFieldColumns.find((c) => !c.name.trim() || !c.label.trim());
       if (emptyCol) {
@@ -138,6 +171,16 @@ export default function TemplateDetailPage() {
     });
   };
 
+  const handleRemoveFile = (index: number) => {
+    removeFileMutation.mutate(
+      { templateId: id, fileIndex: index },
+      {
+        onSuccess: () => toast.success("File removed"),
+        onError: () => toast.error("Failed to remove file"),
+      }
+    );
+  };
+
   const handleAddColumn = () => {
     setNewFieldColumns([...newFieldColumns, { name: "", label: "", type: "text" }]);
   };
@@ -165,6 +208,8 @@ export default function TemplateDetailPage() {
     return <p>Template not found</p>;
   }
 
+  const exampleFiles = template.example_files || [];
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -181,7 +226,7 @@ export default function TemplateDetailPage() {
               <FileText className="mr-1 h-3 w-3" />
               {template.document_count} documents
             </Badge>
-            {template.example_file && (
+            {exampleFiles.length > 0 && (
               <Button
                 variant="outline"
                 className="rounded-xl"
@@ -199,6 +244,69 @@ export default function TemplateDetailPage() {
           </div>
         }
       />
+
+      {/* Example Documents */}
+      <Card className="synapse-shadow border-border/50 rounded-2xl">
+        <CardHeader>
+          <CardTitle>Example Documents</CardTitle>
+          <CardDescription>
+            {exampleFiles.length > 1
+              ? `${exampleFiles.length} example documents — AI compares all to detect field differences`
+              : "Upload example documents for AI field suggestion"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {exampleFiles.length > 0 && (
+            <div className="space-y-2">
+              {exampleFiles.map((filePath, idx) => {
+                const fileName = filePath.split("/").pop() || filePath;
+                return (
+                  <div
+                    key={`${filePath}-${idx}`}
+                    className="flex items-center gap-3 rounded-lg border bg-muted/30 px-3 py-2"
+                  >
+                    <FileText className="h-4 w-4 shrink-0 text-green-600" />
+                    <span className="flex-1 text-sm font-medium truncate">
+                      {fileName}
+                    </span>
+                    <Badge variant="secondary" className="rounded-full text-xs">
+                      Doc {idx + 1}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 rounded-xl"
+                      onClick={() => handleRemoveFile(idx)}
+                      disabled={removeFileMutation.isPending}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div
+            {...getRootProps()}
+            className={`flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed p-6 transition-colors ${
+              isDragActive
+                ? "border-primary bg-primary/5"
+                : "border-muted-foreground/25 hover:border-primary/50"
+            }`}
+          >
+            <input {...getInputProps()} />
+            {addFilesMutation.isPending ? (
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            ) : (
+              <Upload className="h-6 w-6 text-muted-foreground" />
+            )}
+            <p className="text-sm text-muted-foreground">
+              Drop files here to add more examples
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Fields */}
       <Card className="synapse-shadow border-border/50 rounded-2xl">

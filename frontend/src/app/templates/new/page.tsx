@@ -16,7 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { PageHeader } from "@/components/layout/page-header";
-import { Upload, FileText, Loader2, ArrowLeft } from "lucide-react";
+import { Upload, FileText, Loader2, ArrowLeft, X } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -25,10 +25,10 @@ export default function NewTemplatePage() {
   const createMutation = useCreateTemplate();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) setFile(acceptedFiles[0]);
+    setFiles((prev) => [...prev, ...acceptedFiles]);
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -37,8 +37,11 @@ export default function NewTemplatePage() {
       "application/pdf": [".pdf"],
       "image/*": [".png", ".jpg", ".jpeg", ".tiff", ".bmp", ".webp"],
     },
-    maxFiles: 1,
   });
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,11 +53,15 @@ export default function NewTemplatePage() {
     const formData = new FormData();
     formData.append("name", name.trim());
     if (description) formData.append("description", description);
-    if (file) formData.append("file", file);
+    files.forEach((file) => formData.append("files", file));
 
     createMutation.mutate(formData, {
       onSuccess: (data) => {
-        toast.success("Template created! AI is analyzing the document...");
+        const msg =
+          files.length > 1
+            ? `Template created! AI is analyzing ${files.length} documents...`
+            : "Template created! AI is analyzing the document...";
+        toast.success(msg);
         router.push(`/templates/${data.id}`);
       },
       onError: (err: any) => {
@@ -69,7 +76,7 @@ export default function NewTemplatePage() {
     <div className="mx-auto max-w-2xl space-y-8">
       <PageHeader
         title="New Template"
-        description="Upload an example document to auto-detect extractable fields"
+        description="Upload example documents to auto-detect extractable fields"
         actions={
           <Link href="/templates">
             <Button variant="ghost" size="icon" className="rounded-xl">
@@ -110,60 +117,67 @@ export default function NewTemplatePage() {
 
         <Card className="synapse-shadow border-border/50 rounded-2xl">
           <CardHeader>
-            <CardTitle>Example Document</CardTitle>
+            <CardTitle>Example Documents</CardTitle>
             <CardDescription>
-              Upload an example document. AI will analyze it and suggest
-              extractable fields.
+              Upload one or more example documents. When multiple files are
+              provided, AI will analyze all of them and compare differences to
+              build a comprehensive field set.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div
               {...getRootProps()}
               className={`flex cursor-pointer flex-col items-center gap-3 rounded-lg border-2 border-dashed p-8 transition-colors ${
                 isDragActive
                   ? "border-primary bg-primary/5"
-                  : file
-                    ? "border-green-500 bg-green-50"
-                    : "border-muted-foreground/25 hover:border-primary/50"
+                  : "border-muted-foreground/25 hover:border-primary/50"
               }`}
             >
               <input {...getInputProps()} />
-              {file ? (
-                <>
-                  <FileText className="h-10 w-10 text-green-600" />
-                  <div className="text-center">
-                    <p className="font-medium">{file.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {(file.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="rounded-xl"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setFile(null);
-                    }}
-                  >
-                    Remove
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Upload className="h-10 w-10 text-muted-foreground" />
-                  <div className="text-center">
-                    <p className="font-medium">
-                      Drop your document here or click to browse
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      PDF, PNG, JPG, TIFF (max 50MB)
-                    </p>
-                  </div>
-                </>
-              )}
+              <Upload className="h-10 w-10 text-muted-foreground" />
+              <div className="text-center">
+                <p className="font-medium">
+                  Drop your documents here or click to browse
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  PDF, PNG, JPG, TIFF (max 50MB each) — multiple files allowed
+                </p>
+              </div>
             </div>
+
+            {files.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">
+                  {files.length} file{files.length > 1 ? "s" : ""} selected
+                </p>
+                {files.map((file, idx) => (
+                  <div
+                    key={`${file.name}-${idx}`}
+                    className="flex items-center gap-3 rounded-lg border bg-muted/30 px-3 py-2"
+                  >
+                    <FileText className="h-4 w-4 shrink-0 text-green-600" />
+                    <span className="flex-1 text-sm font-medium truncate">
+                      {file.name}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {(file.size / 1024 / 1024).toFixed(2)} MB
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 rounded-xl"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeFile(idx);
+                      }}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 

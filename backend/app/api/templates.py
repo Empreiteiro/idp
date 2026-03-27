@@ -3,6 +3,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from typing import Optional
 
 logger = logging.getLogger("idp.templates")
 
@@ -16,6 +17,31 @@ from app.core.file_utils import save_upload_file, validate_file_type, delete_fil
 from app.schemas.responses import SuccessResponse
 
 router = APIRouter(prefix="/api/templates", tags=["templates"])
+
+
+def _get_example_files(template: Template) -> list[str]:
+    """Parse the example_files JSON column into a list."""
+    if not template.example_files:
+        return []
+    try:
+        files = json.loads(template.example_files)
+        return files if isinstance(files, list) else [files]
+    except (ValueError, TypeError):
+        # Legacy single-path value
+        return [template.example_files]
+
+
+def _template_response(template: Template, doc_count: int) -> TemplateResponse:
+    return TemplateResponse(
+        id=template.id,
+        name=template.name,
+        description=template.description,
+        example_files=_get_example_files(template),
+        created_at=template.created_at,
+        updated_at=template.updated_at,
+        fields=[FieldResponse.model_validate(f) for f in template.fields],
+        document_count=doc_count or 0,
+    )
 
 
 @router.get("", response_model=list[TemplateListResponse])
@@ -45,26 +71,30 @@ def list_templates(db: Session = Depends(get_db)):
 async def create_template(
     name: str = Form(...),
     description: str = Form(None),
-    file: UploadFile | None = File(None),
+    files: list[UploadFile] = File(default=[]),
     db: Session = Depends(get_db),
 ):
     existing = db.query(Template).filter(Template.name == name).first()
     if existing:
         raise HTTPException(400, "Template with this name already exists")
 
-    example_file = None
-    if file and file.filename:
-        if not validate_file_type(file.filename):
-            raise HTTPException(400, "Unsupported file type")
-        example_file, _ = await save_upload_file(file)
+    saved_paths: list[str] = []
+    for f in files:
+        if f and f.filename:
+            if not validate_file_type(f.filename):
+                raise HTTPException(400, f"Unsupported file type: {f.filename}")
+            path, _ = await save_upload_file(f)
+            saved_paths.append(path)
 
-    template = Template(name=name, description=description, example_file=example_file)
+    example_files_json = json.dumps(saved_paths) if saved_paths else None
+
+    template = Template(name=name, description=description, example_files=example_files_json)
     db.add(template)
     db.commit()
     db.refresh(template)
 
-    # If file was uploaded, auto-suggest fields
-    if example_file:
+    # If files were uploaded, auto-suggest fields
+    if saved_paths:
         try:
             from app.services.pipeline import suggest_fields_for_template
             await suggest_fields_for_template(db, template)
@@ -73,12 +103,7 @@ async def create_template(
 
     db.refresh(template)
     doc_count = db.query(func.count(Document.id)).filter(Document.template_id == template.id).scalar()
-    return TemplateResponse(
-        id=template.id, name=template.name, description=template.description,
-        example_file=template.example_file, created_at=template.created_at,
-        updated_at=template.updated_at, fields=[FieldResponse.model_validate(f) for f in template.fields],
-        document_count=doc_count or 0,
-    )
+    return _template_response(template, doc_count)
 
 
 @router.get("/{template_id}", response_model=TemplateResponse)
@@ -87,12 +112,7 @@ def get_template(template_id: int, db: Session = Depends(get_db)):
     if not template:
         raise HTTPException(404, "Template not found")
     doc_count = db.query(func.count(Document.id)).filter(Document.template_id == template.id).scalar()
-    return TemplateResponse(
-        id=template.id, name=template.name, description=template.description,
-        example_file=template.example_file, created_at=template.created_at,
-        updated_at=template.updated_at, fields=[FieldResponse.model_validate(f) for f in template.fields],
-        document_count=doc_count or 0,
-    )
+    return _template_response(template, doc_count)
 
 
 @router.put("/{template_id}", response_model=TemplateResponse)
@@ -107,12 +127,7 @@ def update_template(template_id: int, data: TemplateUpdate, db: Session = Depend
     db.commit()
     db.refresh(template)
     doc_count = db.query(func.count(Document.id)).filter(Document.template_id == template.id).scalar()
-    return TemplateResponse(
-        id=template.id, name=template.name, description=template.description,
-        example_file=template.example_file, created_at=template.created_at,
-        updated_at=template.updated_at, fields=[FieldResponse.model_validate(f) for f in template.fields],
-        document_count=doc_count or 0,
-    )
+    return _template_response(template, doc_count)
 
 
 @router.delete("/{template_id}", response_model=SuccessResponse)
@@ -120,8 +135,8 @@ def delete_template(template_id: int, db: Session = Depends(get_db)):
     template = db.query(Template).filter(Template.id == template_id).first()
     if not template:
         raise HTTPException(404, "Template not found")
-    if template.example_file:
-        delete_file(template.example_file)
+    for path in _get_example_files(template):
+        delete_file(path)
     db.delete(template)
     db.commit()
     return SuccessResponse(message=f"Template '{template.name}' deleted")
@@ -132,8 +147,8 @@ async def suggest_fields(template_id: int, db: Session = Depends(get_db)):
     template = db.query(Template).filter(Template.id == template_id).first()
     if not template:
         raise HTTPException(404, "Template not found")
-    if not template.example_file:
-        raise HTTPException(400, "Template has no example file for field suggestion")
+    if not _get_example_files(template):
+        raise HTTPException(400, "Template has no example files for field suggestion")
     try:
         from app.services.pipeline import suggest_fields_for_template
         await suggest_fields_for_template(db, template)
@@ -141,6 +156,53 @@ async def suggest_fields(template_id: int, db: Session = Depends(get_db)):
         raise HTTPException(500, f"Field suggestion failed: {str(e)}")
     db.refresh(template)
     return [FieldResponse.model_validate(f) for f in template.fields]
+
+
+@router.post("/{template_id}/example-files", response_model=TemplateResponse)
+async def add_example_files(
+    template_id: int,
+    files: list[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+):
+    """Add additional example files to an existing template."""
+    template = db.query(Template).filter(Template.id == template_id).first()
+    if not template:
+        raise HTTPException(404, "Template not found")
+
+    current_files = _get_example_files(template)
+
+    for f in files:
+        if f and f.filename:
+            if not validate_file_type(f.filename):
+                raise HTTPException(400, f"Unsupported file type: {f.filename}")
+            path, _ = await save_upload_file(f)
+            current_files.append(path)
+
+    template.example_files = json.dumps(current_files)
+    db.commit()
+    db.refresh(template)
+    doc_count = db.query(func.count(Document.id)).filter(Document.template_id == template.id).scalar()
+    return _template_response(template, doc_count)
+
+
+@router.delete("/{template_id}/example-files/{file_index}", response_model=TemplateResponse)
+def remove_example_file(template_id: int, file_index: int, db: Session = Depends(get_db)):
+    """Remove an example file by its index."""
+    template = db.query(Template).filter(Template.id == template_id).first()
+    if not template:
+        raise HTTPException(404, "Template not found")
+
+    current_files = _get_example_files(template)
+    if file_index < 0 or file_index >= len(current_files):
+        raise HTTPException(400, "Invalid file index")
+
+    removed = current_files.pop(file_index)
+    delete_file(removed)
+    template.example_files = json.dumps(current_files) if current_files else None
+    db.commit()
+    db.refresh(template)
+    doc_count = db.query(func.count(Document.id)).filter(Document.template_id == template.id).scalar()
+    return _template_response(template, doc_count)
 
 
 # --- Field CRUD ---
