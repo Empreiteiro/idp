@@ -55,7 +55,22 @@ class ProviderUpdate(BaseModel):
 
 
 def _seed_providers(db: Session):
-    """Insert default providers if the table is empty."""
+    """Seed default providers on first call and clean up legacy entries."""
+    # Remove Tesseract if present — it's a system dependency, not an API provider
+    legacy = db.query(ProviderConfig).filter(ProviderConfig.provider_name == "tesseract").first()
+    if legacy:
+        # If tesseract was the OCR default, promote mistral instead
+        if legacy.is_default:
+            mistral = db.query(ProviderConfig).filter(
+                ProviderConfig.kind == "ocr",
+                ProviderConfig.provider_name == "mistral",
+            ).first()
+            if mistral:
+                mistral.is_default = True
+        db.delete(legacy)
+        db.commit()
+
+    # Insert defaults only when the table is empty
     count = db.query(ProviderConfig).count()
     if count > 0:
         return
