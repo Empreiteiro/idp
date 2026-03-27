@@ -12,7 +12,22 @@ class Template(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    example_file: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # JSON array of file paths, e.g. '["uploads/a.pdf","uploads/b.pdf"]'
+    example_files: Mapped[str | None] = mapped_column("example_files", Text, nullable=True)
+
+    # Legacy column kept for backward compat — reads are routed through example_files
+    @property
+    def example_file(self) -> str | None:
+        """Return the first example file for backward compatibility."""
+        import json as _json
+        if not self.example_files:
+            return None
+        try:
+            files = _json.loads(self.example_files)
+            return files[0] if files else None
+        except (ValueError, TypeError):
+            # Legacy single-path value
+            return self.example_files
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

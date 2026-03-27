@@ -19,7 +19,7 @@ export interface Template {
   id: number;
   name: string;
   description: string | null;
-  example_file: string | null;
+  example_files: string[];
   created_at: string;
   updated_at: string;
   fields: TemplateField[];
