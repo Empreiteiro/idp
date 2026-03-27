@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useDropzone } from "react-dropzone";
 import {
   useTemplate,
+  useUpdateTemplate,
   useSuggestFields,
   useAddField,
   useDeleteField,
@@ -42,6 +43,8 @@ import {
   Table2,
   Upload,
   X,
+  Pencil,
+  Check,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -73,6 +76,7 @@ export default function TemplateDetailPage() {
   const params = useParams();
   const id = Number(params.id);
   const { data: template, isLoading } = useTemplate(id);
+  const updateTemplateMutation = useUpdateTemplate();
   const suggestMutation = useSuggestFields();
   const addFieldMutation = useAddField();
   const deleteFieldMutation = useDeleteField();
@@ -80,10 +84,34 @@ export default function TemplateDetailPage() {
   const addFilesMutation = useAddExampleFiles();
   const removeFileMutation = useRemoveExampleFile();
 
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState("");
   const [newFieldName, setNewFieldName] = useState("");
   const [newFieldLabel, setNewFieldLabel] = useState("");
   const [newFieldType, setNewFieldType] = useState("text");
   const [newFieldColumns, setNewFieldColumns] = useState<NewColumn[]>([]);
+
+  const handleStartEditName = () => {
+    setNameValue(template?.name || "");
+    setEditingName(true);
+  };
+
+  const handleSaveName = () => {
+    if (!nameValue.trim()) {
+      toast.error("Template name is required");
+      return;
+    }
+    updateTemplateMutation.mutate(
+      { id, name: nameValue.trim() },
+      {
+        onSuccess: () => {
+          setEditingName(false);
+          toast.success("Template name updated");
+        },
+        onError: () => toast.error("Failed to update name"),
+      }
+    );
+  };
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -213,7 +241,51 @@ export default function TemplateDetailPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title={template.name}
+        title={
+          editingName ? (
+            <div className="flex items-center gap-2">
+              <Input
+                value={nameValue}
+                onChange={(e) => setNameValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSaveName();
+                  if (e.key === "Escape") setEditingName(false);
+                }}
+                className="h-9 text-lg font-bold w-64"
+                autoFocus
+              />
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 rounded-xl"
+                onClick={handleSaveName}
+                disabled={updateTemplateMutation.isPending}
+              >
+                {updateTemplateMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Check className="h-4 w-4" />
+                )}
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 rounded-xl"
+                onClick={() => setEditingName(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <span
+              className="cursor-pointer group/name inline-flex items-center gap-2"
+              onClick={handleStartEditName}
+            >
+              {template.name}
+              <Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover/name:opacity-100 transition-opacity" />
+            </span>
+          )
+        }
         description={template.description || undefined}
         actions={
           <div className="flex items-center gap-3">
