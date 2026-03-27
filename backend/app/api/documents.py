@@ -139,7 +139,12 @@ def delete_document(doc_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{doc_id}/file")
-def serve_file(doc_id: int, db: Session = Depends(get_db)):
+def serve_file(doc_id: int, download: bool = False, db: Session = Depends(get_db)):
+    """Serve the document file.
+
+    By default the file is served inline (for preview in iframe/img).
+    Pass ?download=true to trigger a browser download instead.
+    """
     doc = db.query(Document).filter(Document.id == doc_id).first()
     if not doc:
         raise HTTPException(404, "Document not found")
@@ -148,7 +153,18 @@ def serve_file(doc_id: int, db: Session = Depends(get_db)):
         raise HTTPException(404, "File not found on disk")
 
     media_type = "application/pdf" if doc.file_type == "pdf" else f"image/{doc.file_type.split('/')[-1]}"
-    return FileResponse(path, media_type=media_type, filename=doc.filename)
+
+    if download:
+        return FileResponse(path, media_type=media_type, filename=doc.filename)
+
+    # Inline: serve without Content-Disposition attachment so browsers preview it
+    from starlette.responses import Response
+    content = path.read_bytes()
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": f"inline; filename=\"{doc.filename}\""},
+    )
 
 
 @router.put("/{doc_id}/assign-template", response_model=DocumentResponse)
