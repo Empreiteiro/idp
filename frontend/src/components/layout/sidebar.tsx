@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   FileText,
   FolderOpen,
-  Upload,
   Settings,
   FileCheck,
   Table2,
@@ -42,7 +41,6 @@ function SectionLabel({ children }: { children: string }) {
 const mainNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, countKey: "total_documents" as const },
   { href: "/templates", label: "Templates", icon: FolderOpen, countKey: "total_templates" as const },
-  { href: "/documents/upload", label: "Upload", icon: Upload, countKey: null },
   { href: "/insight-templates", label: "Insight Templates", icon: Lightbulb, countKey: null },
   { href: "/llm-logs", label: "LLM Logs", icon: Activity, countKey: null },
   { href: "/dependencies", label: "Dependencies", icon: Blocks, countKey: null },
