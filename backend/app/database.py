@@ -40,7 +40,7 @@ def init_db():
     Uses Alembic stamp to mark existing databases as up-to-date.
     Falls back to create_all for fresh databases.
     """
-    from app.models import template, document, extraction, activity, llm_log, user  # noqa: F401
+    from app.models import template, document, extraction, activity, llm_log, user, settings  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
 

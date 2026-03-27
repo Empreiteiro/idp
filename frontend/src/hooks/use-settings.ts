@@ -1,6 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
-import type { AppSettings, SystemInfo, ConnectionTestResult, DepsValidationResult } from "@/lib/types";
+import type {
+  AppSettings,
+  ConnectionTestResult,
+  ProvidersResponse,
+  ProviderConfig,
+} from "@/lib/types";
+
+// ---------------------------------------------------------------------------
+// Global settings (legacy key-value)
+// ---------------------------------------------------------------------------
 
 export function useSettings() {
   return useQuery<AppSettings>({
@@ -22,48 +31,82 @@ export function useUpdateSetting() {
   });
 }
 
-export function useSystemInfo() {
-  return useQuery<SystemInfo>({
-    queryKey: ["system-info"],
+// ---------------------------------------------------------------------------
+// Provider configuration
+// ---------------------------------------------------------------------------
+
+export function useProviders() {
+  return useQuery<ProvidersResponse>({
+    queryKey: ["providers"],
     queryFn: async () => {
-      const { data } = await api.get("/api/settings/system-info");
+      const { data } = await api.get("/api/settings/providers");
       return data;
     },
   });
 }
 
-export function useValidateDeps() {
-  return useQuery<DepsValidationResult>({
-    queryKey: ["validate-deps"],
-    queryFn: async () => {
-      const { data } = await api.get("/api/settings/validate-deps");
+export function useCreateProvider() {
+  const qc = useQueryClient();
+  return useMutation<ProviderConfig, Error, {
+    kind: string;
+    provider_name: string;
+    display_name?: string;
+    api_key?: string;
+    model?: string;
+    is_default?: boolean;
+    extra_config?: Record<string, string>;
+  }>({
+    mutationFn: async (body) => {
+      const { data } = await api.post("/api/settings/providers", body);
       return data;
     },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["providers"] }),
   });
 }
 
-export function useTestAI() {
-  return useMutation<ConnectionTestResult>({
-    mutationFn: async () => {
-      const { data } = await api.post("/api/settings/test-ai");
+export function useUpdateProvider() {
+  const qc = useQueryClient();
+  return useMutation<ProviderConfig, Error, {
+    id: number;
+    display_name?: string;
+    api_key?: string;
+    model?: string;
+    is_default?: boolean;
+    is_active?: boolean;
+    extra_config?: Record<string, string>;
+  }>({
+    mutationFn: async ({ id, ...body }) => {
+      const { data } = await api.put(`/api/settings/providers/${id}`, body);
       return data;
     },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["providers"] }),
   });
 }
 
-export function useTestOCR() {
-  return useMutation<ConnectionTestResult>({
-    mutationFn: async () => {
-      const { data } = await api.post("/api/settings/test-ocr");
-      return data;
+export function useDeleteProvider() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, number>({
+    mutationFn: async (id) => {
+      await api.delete(`/api/settings/providers/${id}`);
     },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["providers"] }),
   });
 }
 
-export function useTestMistralOCR() {
-  return useMutation<ConnectionTestResult>({
-    mutationFn: async () => {
-      const { data } = await api.post("/api/settings/test-mistral-ocr");
+export function useSetDefaultProvider() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, number>({
+    mutationFn: async (id) => {
+      await api.post(`/api/settings/providers/${id}/set-default`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["providers"] }),
+  });
+}
+
+export function useTestProvider() {
+  return useMutation<ConnectionTestResult, Error, number>({
+    mutationFn: async (id) => {
+      const { data } = await api.post(`/api/settings/providers/${id}/test`);
       return data;
     },
   });

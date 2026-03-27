@@ -1,15 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
-  useSettings,
-  useUpdateSetting,
-  useSystemInfo,
-  useValidateDeps,
-  useTestAI,
-  useTestOCR,
-  useTestMistralOCR,
+  useProviders,
+  useUpdateProvider,
+  useDeleteProvider,
+  useSetDefaultProvider,
+  useTestProvider,
 } from "@/hooks/use-settings";
+import type { ProviderConfig } from "@/lib/types";
 import {
   Card,
   CardContent,
@@ -17,6 +16,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,88 +36,215 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   Loader2,
-  Save,
   Brain,
+  ScanLine,
   Eye,
   EyeOff,
   CheckCircle,
   XCircle,
   Zap,
-  ScanLine,
-  Package,
-  ShieldCheck,
-  AlertTriangle,
+  Pencil,
+  Trash2,
+  Star,
 } from "lucide-react";
 import { toast } from "sonner";
-import { validateApiKey } from "@/lib/schemas";
 import { PageHeader } from "@/components/layout/page-header";
 
-const providerModels: Record<string, string[]> = {
-  openai: ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1"],
-  claude: [
-    "claude-sonnet-4-20250514",
-    "claude-haiku-4-20250414",
-    "claude-opus-4-20250514",
-  ],
-  gemini: ["gemini-2.0-flash", "gemini-2.5-pro", "gemini-2.5-flash"],
-};
+// ---------------------------------------------------------------------------
+// Edit Provider Dialog
+// ---------------------------------------------------------------------------
 
-export default function SettingsPage() {
-  const { data, isLoading } = useSettings();
-  const updateMutation = useUpdateSetting();
-  const { data: sysInfo } = useSystemInfo();
-  const { data: depsValidation, isLoading: depsLoading } = useValidateDeps();
-  const testAIMutation = useTestAI();
-  const testOCRMutation = useTestOCR();
-  const testMistralMutation = useTestMistralOCR();
+function EditProviderDialog({
+  provider,
+  availableModels,
+  onClose,
+}: {
+  provider: ProviderConfig;
+  availableModels: Record<string, string[]>;
+  onClose: () => void;
+}) {
+  const updateMutation = useUpdateProvider();
 
-  const [provider, setProvider] = useState("openai");
   const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState("");
-  const [tesseractPath, setTesseractPath] = useState("");
-  const [popperPath, setPopperPath] = useState("");
+  const [model, setModel] = useState(provider.model);
   const [showKey, setShowKey] = useState(false);
-  const [apiKeyError, setApiKeyError] = useState("");
-  const [ocrProvider, setOcrProvider] = useState("default");
-  const [mistralApiKey, setMistralApiKey] = useState("");
-  const [showMistralKey, setShowMistralKey] = useState(false);
+  const [extraConfig, setExtraConfig] = useState(provider.extra_config || {});
 
-  useEffect(() => {
-    if (data?.settings) {
-      setProvider(data.settings.ai_provider || "openai");
-      setApiKey(data.settings.ai_api_key || "");
-      setModel(data.settings.ai_model || "");
-      setTesseractPath(data.settings.tesseract_path || "");
-      setPopperPath(data.settings.poppler_path || "");
-      setOcrProvider(data.settings.ocr_provider || "default");
-      setMistralApiKey(data.settings.mistral_api_key || "");
+  const models = availableModels[provider.provider_name] || [];
+
+  const handleSave = () => {
+    const payload: Parameters<typeof updateMutation.mutate>[0] = {
+      id: provider.id,
+      model,
+    };
+    if (apiKey) {
+      payload.api_key = apiKey;
     }
-  }, [data]);
-
-  const saveSetting = (key: string, value: string) => {
-    updateMutation.mutate(
-      { key, value },
-      {
-        onSuccess: () => toast.success(`${key} updated`),
-        onError: () => toast.error(`Failed to update ${key}`),
-      }
-    );
+    if (provider.kind === "ocr") {
+      payload.extra_config = extraConfig;
+    }
+    updateMutation.mutate(payload, {
+      onSuccess: () => {
+        toast.success(`${provider.display_name} updated`);
+        onClose();
+      },
+      onError: () => toast.error("Failed to update provider"),
+    });
   };
 
-  const handleSaveAll = () => {
-    saveSetting("ai_provider", provider);
-    if (apiKey && !apiKey.includes("...")) saveSetting("ai_api_key", apiKey);
-    saveSetting("ai_model", model);
-    if (tesseractPath) saveSetting("tesseract_path", tesseractPath);
-    if (popperPath) saveSetting("poppler_path", popperPath);
-    saveSetting("ocr_provider", ocrProvider);
-    if (mistralApiKey && !mistralApiKey.includes("...")) saveSetting("mistral_api_key", mistralApiKey);
+  return (
+    <div className="space-y-4">
+      <DialogHeader>
+        <DialogTitle>Edit {provider.display_name}</DialogTitle>
+        <DialogDescription>
+          Configure API key{models.length > 0 ? " and model" : ""} for this provider
+        </DialogDescription>
+      </DialogHeader>
+
+      <div className="space-y-4 py-2">
+        {/* API Key (not for tesseract) */}
+        {provider.provider_name !== "tesseract" && (
+          <div className="space-y-2">
+            <Label>API Key</Label>
+            <div className="relative">
+              <Input
+                type={showKey ? "text" : "password"}
+                placeholder={provider.has_key ? "Leave empty to keep current key" : "Enter API key"}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                onClick={() => setShowKey(!showKey)}
+                type="button"
+              >
+                {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              </Button>
+            </div>
+            {provider.has_key && (
+              <p className="text-xs text-muted-foreground">
+                Current key: {provider.api_key}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Model selector */}
+        {models.length > 0 && (
+          <div className="space-y-2">
+            <Label>Model</Label>
+            <Select value={model} onValueChange={(val) => setModel(val ?? "")}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select model" />
+              </SelectTrigger>
+              <SelectContent>
+                {models.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {m}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {/* Extra config for Tesseract */}
+        {provider.provider_name === "tesseract" && (
+          <>
+            <div className="space-y-2">
+              <Label>Tesseract Path</Label>
+              <Input
+                placeholder="e.g., C:\Program Files\Tesseract-OCR\tesseract.exe"
+                value={extraConfig.tesseract_path || ""}
+                onChange={(e) => setExtraConfig({ ...extraConfig, tesseract_path: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave empty to use system PATH.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Poppler Path</Label>
+              <Input
+                placeholder="e.g., C:\poppler\Library\bin"
+                value={extraConfig.poppler_path || ""}
+                onChange={(e) => setExtraConfig({ ...extraConfig, poppler_path: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Required for scanned PDF OCR on Windows.
+              </p>
+            </div>
+          </>
+        )}
+      </div>
+
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button onClick={handleSave} disabled={updateMutation.isPending}>
+          {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Save
+        </Button>
+      </DialogFooter>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Provider Table
+// ---------------------------------------------------------------------------
+
+function ProviderTable({
+  providers,
+  kind,
+  availableModels,
+}: {
+  providers: ProviderConfig[];
+  kind: "ai" | "ocr";
+  availableModels: Record<string, string[]>;
+}) {
+  const setDefaultMutation = useSetDefaultProvider();
+  const deleteMutation = useDeleteProvider();
+  const testMutation = useTestProvider();
+  const [editingProvider, setEditingProvider] = useState<ProviderConfig | null>(null);
+  const [testResults, setTestResults] = useState<Record<number, { status: string; message: string }>>({});
+
+  const filtered = providers.filter((p) => p.kind === kind);
+
+  const handleSetDefault = (id: number) => {
+    setDefaultMutation.mutate(id, {
+      onSuccess: () => toast.success("Default provider updated"),
+      onError: () => toast.error("Failed to update default"),
+    });
   };
 
-  const handleTestAI = () => {
-    testAIMutation.mutate(undefined, {
+  const handleDelete = (p: ProviderConfig) => {
+    if (p.is_default) {
+      toast.error("Cannot delete the default provider");
+      return;
+    }
+    deleteMutation.mutate(p.id, {
+      onSuccess: () => toast.success(`${p.display_name} removed`),
+      onError: () => toast.error("Failed to delete provider"),
+    });
+  };
+
+  const handleTest = (p: ProviderConfig) => {
+    testMutation.mutate(p.id, {
       onSuccess: (result) => {
+        setTestResults((prev) => ({ ...prev, [p.id]: result }));
         if (result.status === "ok") {
           toast.success(result.message);
         } else {
@@ -121,440 +255,215 @@ export default function SettingsPage() {
     });
   };
 
-  const handleTestMistral = () => {
-    testMistralMutation.mutate(undefined, {
-      onSuccess: (result) => {
-        if (result.status === "ok") {
-          toast.success(result.message);
-        } else {
-          toast.error(result.message);
-        }
-      },
-      onError: () => toast.error("Mistral OCR test failed"),
-    });
-  };
+  return (
+    <>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Provider</TableHead>
+            {kind === "ai" && <TableHead>Model</TableHead>}
+            <TableHead>API Key</TableHead>
+            <TableHead>Default</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filtered.map((p) => {
+            const testResult = testResults[p.id];
+            return (
+              <TableRow key={p.id}>
+                <TableCell className="font-medium">
+                  {p.display_name}
+                </TableCell>
+                {kind === "ai" && (
+                  <TableCell className="font-mono text-xs">
+                    {p.model || "—"}
+                  </TableCell>
+                )}
+                <TableCell>
+                  {p.provider_name === "tesseract" ? (
+                    <span className="text-xs text-muted-foreground">N/A</span>
+                  ) : p.has_key ? (
+                    <Badge className="rounded-full gap-1 bg-green-100 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400">
+                      <CheckCircle className="h-3 w-3" />
+                      Configured
+                    </Badge>
+                  ) : (
+                    <Badge className="rounded-full gap-1 bg-amber-100 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400">
+                      <XCircle className="h-3 w-3" />
+                      Not set
+                    </Badge>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {p.is_default ? (
+                    <Badge className="rounded-full gap-1 bg-primary/10 text-primary">
+                      <Star className="h-3 w-3 fill-current" />
+                      Default
+                    </Badge>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-muted-foreground"
+                      onClick={() => handleSetDefault(p.id)}
+                      disabled={setDefaultMutation.isPending}
+                    >
+                      Set default
+                    </Button>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {testResult ? (
+                    testResult.status === "ok" ? (
+                      <Badge className="rounded-full gap-1 bg-green-100 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400">
+                        <CheckCircle className="h-3 w-3" />
+                        OK
+                      </Badge>
+                    ) : (
+                      <Badge className="rounded-full gap-1 bg-red-100 text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400">
+                        <XCircle className="h-3 w-3" />
+                        Error
+                      </Badge>
+                    )
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleTest(p)}
+                      disabled={testMutation.isPending}
+                      title="Test connection"
+                    >
+                      {testMutation.isPending && testMutation.variables === p.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Zap className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                    <Dialog
+                      open={editingProvider?.id === p.id}
+                      onOpenChange={(open) => {
+                        if (!open) setEditingProvider(null);
+                      }}
+                    >
+                      <DialogTrigger>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => setEditingProvider(p)}
+                          title="Edit"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md">
+                        {editingProvider && (
+                          <EditProviderDialog
+                            provider={editingProvider}
+                            availableModels={availableModels}
+                            onClose={() => setEditingProvider(null)}
+                          />
+                        )}
+                      </DialogContent>
+                    </Dialog>
+                    {!p.is_default && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => handleDelete(p)}
+                        disabled={deleteMutation.isPending}
+                        title="Delete"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </>
+  );
+}
 
-  const handleTestOCR = () => {
-    testOCRMutation.mutate(undefined, {
-      onSuccess: (result) => {
-        if (result.status === "ok") {
-          toast.success(result.message);
-        } else {
-          toast.error(result.message);
-        }
-      },
-      onError: () => toast.error("OCR test failed"),
-    });
-  };
+// ---------------------------------------------------------------------------
+// Main Page
+// ---------------------------------------------------------------------------
+
+export default function SettingsPage() {
+  const { data, isLoading } = useProviders();
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8">
+    <div className="mx-auto max-w-4xl space-y-8">
       <PageHeader
         title="Settings"
-        description="Configure AI provider and OCR settings"
+        description="Configure AI and OCR providers for document processing"
       />
 
-      {/* System Info */}
-      {sysInfo && (
-        <Card className="synapse-shadow border-border/50 rounded-2xl">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <Package className="h-4 w-4" />
-              System Libraries
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(sysInfo.libraries).map(([lib, available]) => (
-                <Badge
-                  key={lib}
-                  variant={available ? "default" : "secondary"}
-                  className={`rounded-full gap-1 ${available ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-red-100 text-red-600 hover:bg-red-100"}`}
-                >
-                  {available ? (
-                    <CheckCircle className="h-3 w-3" />
-                  ) : (
-                    <XCircle className="h-3 w-3" />
-                  )}
-                  {lib.replace(/_/g, " ")}
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Dependencies Validation */}
-      {depsValidation && (
-        <Card className="synapse-shadow border-border/50 rounded-2xl">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              {depsValidation.ok ? (
-                <ShieldCheck className="h-4 w-4 text-green-600" />
-              ) : (
-                <AlertTriangle className="h-4 w-4 text-amber-500" />
-              )}
-              Dependencies Validation
-            </CardTitle>
-            <CardDescription>
-              {depsValidation.summary}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-2">Python Packages</p>
-              <div className="flex flex-wrap gap-2">
-                {depsValidation.python_packages.map((dep) => (
-                  <Badge
-                    key={dep.name}
-                    variant={dep.installed ? "default" : "secondary"}
-                    className={`rounded-full gap-1 ${
-                      dep.installed
-                        ? "bg-green-100 text-green-700 hover:bg-green-100"
-                        : dep.required
-                          ? "bg-red-100 text-red-600 hover:bg-red-100"
-                          : "bg-amber-100 text-amber-700 hover:bg-amber-100"
-                    }`}
-                    title={`${dep.detail}${dep.version ? ` (v${dep.version})` : ""}${dep.required ? " — required" : " — optional"}`}
-                  >
-                    {dep.installed ? (
-                      <CheckCircle className="h-3 w-3" />
-                    ) : (
-                      <XCircle className="h-3 w-3" />
-                    )}
-                    {dep.name}
-                    {dep.version && (
-                      <span className="text-[10px] opacity-70">{dep.version}</span>
-                    )}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-2">System Tools</p>
-              <div className="flex flex-wrap gap-2">
-                {depsValidation.system_tools.map((dep) => (
-                  <Badge
-                    key={dep.name}
-                    variant={dep.installed ? "default" : "secondary"}
-                    className={`rounded-full gap-1 ${
-                      dep.installed
-                        ? "bg-green-100 text-green-700 hover:bg-green-100"
-                        : "bg-amber-100 text-amber-700 hover:bg-amber-100"
-                    }`}
-                    title={`${dep.detail}${dep.version ? ` (${dep.version})` : ""}`}
-                  >
-                    {dep.installed ? (
-                      <CheckCircle className="h-3 w-3" />
-                    ) : (
-                      <XCircle className="h-3 w-3" />
-                    )}
-                    {dep.name}
-                    {dep.version && (
-                      <span className="text-[10px] opacity-70">{dep.version}</span>
-                    )}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* AI Provider */}
+      {/* AI Providers */}
       <Card className="synapse-shadow border-border/50 rounded-2xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5" />
-            AI Provider
+            AI Providers
           </CardTitle>
           <CardDescription>
-            Choose which AI provider to use for document analysis and extraction
+            Configure which AI models to use for document analysis and data extraction.
+            The default provider will be used for all processing tasks.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Provider</Label>
-            <Select value={provider} onValueChange={(val) => setProvider(val ?? "openai")}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="openai">OpenAI (GPT)</SelectItem>
-                <SelectItem value="claude">Anthropic (Claude)</SelectItem>
-                <SelectItem value="gemini">Google (Gemini)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>API Key</Label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Input
-                  type={showKey ? "text" : "password"}
-                  placeholder="Enter your API key"
-                  value={apiKey}
-                  onChange={(e) => {
-                    setApiKey(e.target.value);
-                    setApiKeyError(validateApiKey(e.target.value) || "");
-                  }}
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                  onClick={() => setShowKey(!showKey)}
-                  type="button"
-                  aria-label={showKey ? "Hide API key" : "Show API key"}
-                >
-                  {showKey ? (
-                    <EyeOff className="h-3.5 w-3.5" />
-                  ) : (
-                    <Eye className="h-3.5 w-3.5" />
-                  )}
-                </Button>
-              </div>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-            {apiKeyError && <p className="text-xs text-red-500">{apiKeyError}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label>Model</Label>
-            <Select value={model} onValueChange={(val) => setModel(val ?? "")}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a model" />
-              </SelectTrigger>
-              <SelectContent>
-                {(providerModels[provider] || []).map((m) => (
-                  <SelectItem key={m} value={m}>
-                    {m}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Button
-            variant="outline"
-            onClick={handleTestAI}
-            disabled={testAIMutation.isPending}
-            className="w-full rounded-xl"
-          >
-            {testAIMutation.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Zap className="mr-2 h-4 w-4" />
-            )}
-            Test AI Connection
-          </Button>
-
-          {testAIMutation.data && (
-            <div
-              className={`flex items-center gap-2 rounded-lg border p-3 text-sm ${
-                testAIMutation.data.status === "ok"
-                  ? "border-green-200 bg-green-50 text-green-800"
-                  : "border-red-200 bg-red-50 text-red-800"
-              }`}
-            >
-              {testAIMutation.data.status === "ok" ? (
-                <CheckCircle className="h-4 w-4 flex-shrink-0" />
-              ) : (
-                <XCircle className="h-4 w-4 flex-shrink-0" />
-              )}
-              {testAIMutation.data.message}
-            </div>
-          )}
+          ) : data ? (
+            <ProviderTable
+              providers={data.providers}
+              kind="ai"
+              availableModels={data.available_models}
+            />
+          ) : null}
         </CardContent>
       </Card>
 
-      {/* OCR Provider */}
+      {/* OCR Providers */}
       <Card className="synapse-shadow border-border/50 rounded-2xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ScanLine className="h-5 w-5" />
-            OCR Provider
+            OCR Providers
           </CardTitle>
           <CardDescription>
-            Choose the OCR engine for document pre-processing. Mistral OCR uses
-            a dedicated API for high-quality text extraction from PDFs and images.
+            Configure OCR engines for document pre-processing.
+            Tesseract runs locally; Mistral OCR uses a cloud API for high-quality extraction.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Provider</Label>
-            <Select value={ocrProvider} onValueChange={(val) => setOcrProvider(val ?? "default")}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="default">Default (pdfplumber + Tesseract + AI Vision)</SelectItem>
-                <SelectItem value="mistral">Mistral OCR</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {ocrProvider === "mistral" && (
-            <>
-              <div className="space-y-2">
-                <Label>Mistral API Key</Label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Input
-                      type={showMistralKey ? "text" : "password"}
-                      placeholder="Enter your Mistral API key"
-                      value={mistralApiKey}
-                      onChange={(e) => setMistralApiKey(e.target.value)}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                      onClick={() => setShowMistralKey(!showMistralKey)}
-                      type="button"
-                      aria-label={showMistralKey ? "Hide API key" : "Show API key"}
-                    >
-                      {showMistralKey ? (
-                        <EyeOff className="h-3.5 w-3.5" />
-                      ) : (
-                        <Eye className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Get your API key from{" "}
-                  <a href="https://console.mistral.ai/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                    console.mistral.ai
-                  </a>
-                </p>
-              </div>
-
-              <Button
-                variant="outline"
-                onClick={handleTestMistral}
-                disabled={testMistralMutation.isPending}
-                className="w-full rounded-xl"
-              >
-                {testMistralMutation.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Zap className="mr-2 h-4 w-4" />
-                )}
-                Test Mistral OCR
-              </Button>
-
-              {testMistralMutation.data && (
-                <div
-                  className={`flex items-center gap-2 rounded-lg border p-3 text-sm ${
-                    testMistralMutation.data.status === "ok"
-                      ? "border-green-200 bg-green-50 text-green-800 dark:bg-green-950 dark:text-green-200 dark:border-green-800"
-                      : "border-red-200 bg-red-50 text-red-800 dark:bg-red-950 dark:text-red-200 dark:border-red-800"
-                  }`}
-                >
-                  {testMistralMutation.data.status === "ok" ? (
-                    <CheckCircle className="h-4 w-4 flex-shrink-0" />
-                  ) : (
-                    <XCircle className="h-4 w-4 flex-shrink-0" />
-                  )}
-                  {testMistralMutation.data.message}
-                </div>
-              )}
-            </>
-          )}
-
-          {ocrProvider === "default" && (
-            <p className="text-xs text-muted-foreground rounded-lg bg-muted p-3">
-              Default mode uses pdfplumber for digital PDFs, Tesseract for scanned documents,
-              and your configured AI provider as a final fallback. Configure Tesseract paths below if needed.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* OCR */}
-      <Card className="synapse-shadow border-border/50 rounded-2xl">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ScanLine className="h-5 w-5" />
-            OCR Configuration (Tesseract)
-          </CardTitle>
-          <CardDescription>
-            Paths for Tesseract and Poppler. Used as fallback when Mistral OCR is
-            not configured, or as primary engine in default mode.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Tesseract Path</Label>
-            <Input
-              placeholder="e.g., C:\Program Files\Tesseract-OCR\tesseract.exe"
-              value={tesseractPath}
-              onChange={(e) => setTesseractPath(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Leave empty to use system PATH. Required only for scanned/image
-              documents.
-            </p>
-          </div>
-          <div className="space-y-2">
-            <Label>Poppler Path</Label>
-            <Input
-              placeholder="e.g., C:\poppler\Library\bin"
-              value={popperPath}
-              onChange={(e) => setPopperPath(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Required for scanned PDF OCR on Windows. Text-based PDFs work
-              without it (via pdfplumber).
-            </p>
-          </div>
-
-          <Button
-            variant="outline"
-            onClick={handleTestOCR}
-            disabled={testOCRMutation.isPending}
-            className="w-full rounded-xl"
-          >
-            {testOCRMutation.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <ScanLine className="mr-2 h-4 w-4" />
-            )}
-            Test OCR (Tesseract)
-          </Button>
-
-          {testOCRMutation.data && (
-            <div
-              className={`flex items-center gap-2 rounded-lg border p-3 text-sm ${
-                testOCRMutation.data.status === "ok"
-                  ? "border-green-200 bg-green-50 text-green-800"
-                  : "border-red-200 bg-red-50 text-red-800"
-              }`}
-            >
-              {testOCRMutation.data.status === "ok" ? (
-                <CheckCircle className="h-4 w-4 flex-shrink-0" />
-              ) : (
-                <XCircle className="h-4 w-4 flex-shrink-0" />
-              )}
-              {testOCRMutation.data.message}
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          )}
+          ) : data ? (
+            <ProviderTable
+              providers={data.providers}
+              kind="ocr"
+              availableModels={data.available_models}
+            />
+          ) : null}
         </CardContent>
       </Card>
-
-      <Button
-        className="w-full rounded-xl"
-        onClick={handleSaveAll}
-        disabled={updateMutation.isPending}
-      >
-        {updateMutation.isPending ? (
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        ) : (
-          <Save className="mr-2 h-4 w-4" />
-        )}
-        Save All Settings
-      </Button>
     </div>
   );
 }

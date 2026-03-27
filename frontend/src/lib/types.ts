@@ -181,6 +181,26 @@ export interface ConnectionTestResult {
   response?: string;
 }
 
+export interface ProviderConfig {
+  id: number;
+  kind: "ai" | "ocr";
+  provider_name: string;
+  display_name: string;
+  api_key: string; // masked
+  has_key: boolean;
+  model: string;
+  is_default: boolean;
+  is_active: boolean;
+  extra_config: Record<string, string>;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface ProvidersResponse {
+  providers: ProviderConfig[];
+  available_models: Record<string, string[]>;
+}
+
 // LLM Logs types
 export interface LLMLogEntry {
   id: number;
