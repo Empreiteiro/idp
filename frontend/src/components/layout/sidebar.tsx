@@ -19,6 +19,7 @@ import {
   Database,
   Eye,
   Folder,
+  Blocks,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDashboardStats } from "@/hooks/use-dashboard";
@@ -44,6 +45,7 @@ const mainNavItems = [
   { href: "/documents/upload", label: "Upload", icon: Upload, countKey: null },
   { href: "/insight-templates", label: "Insight Templates", icon: Lightbulb, countKey: null },
   { href: "/llm-logs", label: "LLM Logs", icon: Activity, countKey: null },
+  { href: "/dependencies", label: "Dependencies", icon: Blocks, countKey: null },
   { href: "/settings", label: "Settings", icon: Settings, countKey: null },
 ];
 
