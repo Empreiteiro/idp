@@ -40,6 +40,7 @@ import {
   Info,
   Plus,
   Trash2,
+  Download,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -285,6 +286,15 @@ export default function DocumentDetailPage() {
                     {(doc.file_size / 1024).toFixed(0)} KB
                   </span>
                 )}
+                <a
+                  href={`${fileUrl}?download=true`}
+                  download
+                >
+                  <Button variant="outline" className="rounded-xl">
+                    <Download className="mr-2 h-4 w-4" />
+                    Download
+                  </Button>
+                </a>
                 <Button
                   variant="outline"
                   className="rounded-xl"
