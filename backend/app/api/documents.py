@@ -159,11 +159,13 @@ def serve_file(doc_id: int, download: bool = False, db: Session = Depends(get_db
 
     # Inline: serve without Content-Disposition attachment so browsers preview it
     from starlette.responses import Response
+    from urllib.parse import quote
+    safe_filename = quote(doc.filename)
     content = path.read_bytes()
     return Response(
         content=content,
         media_type=media_type,
-        headers={"Content-Disposition": f"inline; filename=\"{doc.filename}\""},
+        headers={"Content-Disposition": f"inline; filename*=UTF-8''{safe_filename}"},
     )
 
 
