@@ -21,6 +21,8 @@ export function useDocuments(params?: {
   });
 }
 
+const PROCESSING_STATUSES = ["ocr_processing", "classifying", "extracting", "uploaded"];
+
 export function useDocument(id: number | null) {
   return useQuery<DocumentDetail>({
     queryKey: ["document", id],
@@ -29,6 +31,14 @@ export function useDocument(id: number | null) {
       return data;
     },
     enabled: !!id,
+    // Poll every 2s while the document is still being processed
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      if (status && PROCESSING_STATUSES.includes(status)) {
+        return 2000;
+      }
+      return false;
+    },
   });
 }
 
